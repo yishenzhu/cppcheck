@@ -726,7 +726,7 @@ def findGotoLabel(gotoToken):
     label = gotoToken.next.str
     tok = gotoToken.next.next
     while tok:
-        if tok.str == '}' and tok.scope.type == 'Function':
+        if tok.str == '}' and tok.scope.type == 'Function' and tok == tok.scope.bodyEnd:
             break
         if tok.str == label and tok.next.str == ':':
             return tok
@@ -1512,7 +1512,7 @@ class MisraChecker:
                     self.reportError(typeStartToken, 8, 2)
 
                 # Type declaration on next line (old style declaration list) is not allowed
-                if (typeStartToken.linenr > endCall.linenr) or (typeStartToken.column > endCall.column):
+                if (typeStartToken.file == endCall.file) and ((typeStartToken.linenr > endCall.linenr) or (typeStartToken.column > endCall.column)):
                     self.reportError(typeStartToken, 8, 2)
 
         # Check arguments in pointer declarations
