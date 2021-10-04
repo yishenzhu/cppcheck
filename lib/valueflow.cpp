@@ -5430,11 +5430,13 @@ static bool isInBounds(const ValueFlow::Value& value, MathLib::bigint x)
     return true;
 }
 
-static const ValueFlow::Value* getCompareIntValue(const std::list<ValueFlow::Value>& values, std::function<bool(MathLib::bigint, MathLib::bigint)> compare)
+static const ValueFlow::Value* getCompareIntValue(const std::list<ValueFlow::Value>& values, std::function<bool(MathLib::bigint, MathLib::bigint)> compare, bool ignoreMinusOne)
 {
     const ValueFlow::Value* result = nullptr;
     for (const ValueFlow::Value& value : values) {
         if (!value.isIntValue())
+            continue;
+        if (ignoreMinusOne && value.intvalue == -1 && value.bound == ValueFlow::Value::Bound::Upper)
             continue;
         if (result)
             result = &std::min(value, *result, [compare](const ValueFlow::Value& x, const ValueFlow::Value& y) {
@@ -5446,10 +5448,10 @@ static const ValueFlow::Value* getCompareIntValue(const std::list<ValueFlow::Val
     return result;
 }
 
-static const ValueFlow::Value* proveLessThan(const std::list<ValueFlow::Value>& values, MathLib::bigint x)
+static const ValueFlow::Value* proveLessThan(const std::list<ValueFlow::Value>& values, MathLib::bigint x, bool ignoreMinusOne = false)
 {
     const ValueFlow::Value* result = nullptr;
-    const ValueFlow::Value* maxValue = getCompareIntValue(values, std::greater<MathLib::bigint> {});
+    const ValueFlow::Value* maxValue = getCompareIntValue(values, std::greater<MathLib::bigint> {}, ignoreMinusOne);
     if (maxValue && maxValue->isImpossible() && maxValue->bound == ValueFlow::Value::Bound::Lower) {
         if (maxValue->intvalue <= x)
             result = maxValue;
@@ -5457,10 +5459,10 @@ static const ValueFlow::Value* proveLessThan(const std::list<ValueFlow::Value>& 
     return result;
 }
 
-static const ValueFlow::Value* proveGreaterThan(const std::list<ValueFlow::Value>& values, MathLib::bigint x)
+static const ValueFlow::Value* proveGreaterThan(const std::list<ValueFlow::Value>& values, MathLib::bigint x, bool ignoreMinusOne = false)
 {
     const ValueFlow::Value* result = nullptr;
-    const ValueFlow::Value* minValue = getCompareIntValue(values, std::less<MathLib::bigint> {});
+    const ValueFlow::Value* minValue = getCompareIntValue(values, std::less<MathLib::bigint> {}, ignoreMinusOne);
     if (minValue && minValue->isImpossible() && minValue->bound == ValueFlow::Value::Bound::Upper) {
         if (minValue->intvalue >= x)
             result = minValue;
@@ -5468,11 +5470,13 @@ static const ValueFlow::Value* proveGreaterThan(const std::list<ValueFlow::Value
     return result;
 }
 
-static const ValueFlow::Value* proveNotEqual(const std::list<ValueFlow::Value>& values, MathLib::bigint x)
+static const ValueFlow::Value* proveNotEqual(const std::list<ValueFlow::Value>& values, MathLib::bigint x, bool isUnsigned = false)
 {
     const ValueFlow::Value* result = nullptr;
     for (const ValueFlow::Value& value : values) {
         if (value.valueType != ValueFlow::Value::ValueType::INT)
+            continue;
+        if (isUnsigned && x == -1 && value.bound == ValueFlow::Value::Bound::Upper)
             continue;
         if (result && !isInBounds(value, result->intvalue))
             continue;
@@ -5507,20 +5511,34 @@ ValueFlow::Value inferCondition(const std::string& op, const Token* varTok, Math
     const ValueFlow::Value* result = nullptr;
     bool known = false;
     if (op == "==" || op == "!=") {
-        result = proveNotEqual(varTok->values(), val);
+        result = proveNotEqual(varTok->values(), val, astIsUnsigned(varTok));
         known = op == "!=";
     } else if (op == "<" || op == ">=") {
-        result = proveLessThan(varTok->values(), val);
+        if (astIsUnsigned(varTok) && val == 0) {
+            ValueFlow::Value value{};
+            value.intvalue = op == ">=";
+            value.bound = ValueFlow::Value::Bound::Point;
+            value.setKnown();
+            return value;
+        }
+        result = proveLessThan(varTok->values(), val, astIsUnsigned(varTok));
         known = op == "<";
         if (!result && !isSaturated(val)) {
-            result = proveGreaterThan(varTok->values(), val - 1);
+            result = proveGreaterThan(varTok->values(), val - 1, astIsUnsigned(varTok));
             known = op == ">=";
         }
     } else if (op == ">" || op == "<=") {
-        result = proveGreaterThan(varTok->values(), val);
+        if (astIsUnsigned(varTok) && val == -1) {
+            ValueFlow::Value value{};
+            value.intvalue = op == "<=";
+            value.bound = ValueFlow::Value::Bound::Point;
+            value.setKnown();
+            return value;
+        }
+        result = proveGreaterThan(varTok->values(), val, astIsUnsigned(varTok));
         known = op == ">";
         if (!result && !isSaturated(val)) {
-            result = proveLessThan(varTok->values(), val + 1);
+            result = proveLessThan(varTok->values(), val + 1, astIsUnsigned(varTok));
             known = op == "<=";
         }
     }
