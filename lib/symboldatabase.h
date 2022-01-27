@@ -1367,7 +1367,7 @@ public:
      * @param tok token of function call
      * @return pointer to function if found or NULL if not found
      */
-    const Function *findFunction(const Token *tok) const;
+    const Function *findFunction(const Token *tok, const Scope* currScope = nullptr) const;
 
     /** For unit testing only */
     const Scope *findScopeByName(const std::string& name) const;
