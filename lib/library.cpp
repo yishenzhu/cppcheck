@@ -1139,8 +1139,12 @@ const Library::Container* Library::detectContainer(const Token* typeStart, bool 
         if (container.startPattern.empty())
             continue;
 
-        if (!Token::Match(typeStart, container.startPattern2.c_str()))
-            continue;
+        if (!Token::Match(typeStart, container.startPattern2.c_str())) {
+            if (!iterator)
+                continue;
+            if (!Token::Match(typeStart, container.startPattern.c_str()))
+                continue;
+        }
 
         if (!iterator && container.endPattern.empty()) // If endPattern is undefined, it will always match, but itEndPattern has to be defined.
             return &container;
@@ -1151,6 +1155,9 @@ const Library::Container* Library::detectContainer(const Token* typeStart, bool 
                 if (Token::Match(tok->link(), endPattern.c_str()))
                     return &container;
                 break;
+            }
+            if (iterator && container.endPattern.empty() && Token::Match(tok, container.itEndPattern.c_str())) {
+                return &container;
             }
         }
     }
