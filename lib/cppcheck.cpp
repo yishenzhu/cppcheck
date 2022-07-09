@@ -778,7 +778,7 @@ unsigned int CppCheck::checkFile(const std::string& filename, const std::string 
         std::set<unsigned long long> hashes;
         int checkCount = 0;
         bool hasValidConfig = false;
-        std::list<std::string> configurationError;
+        std::vector<std::string> configurationError;
         for (const std::string &currCfg : configurations) {
             // bail out if terminated
             if (Settings::terminated())
