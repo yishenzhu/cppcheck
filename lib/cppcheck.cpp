@@ -1294,7 +1294,7 @@ void CppCheck::executeRules(const std::string &tokenlist, const TokenList &list)
         if (!re) {
             if (pcreCompileErrorStr) {
                 const std::string msg = "pcre_compile failed: " + std::string(pcreCompileErrorStr);
-                const ErrorMessage errmsg(std::list<ErrorMessage::FileLocation>(),
+                const ErrorMessage errmsg({},
                                           emptyString,
                                           Severity::error,
                                           msg,
@@ -1315,7 +1315,7 @@ void CppCheck::executeRules(const std::string &tokenlist, const TokenList &list)
         // It is NULL if everything works, and points to an error string otherwise.
         if (pcreStudyErrorStr) {
             const std::string msg = "pcre_study failed: " + std::string(pcreStudyErrorStr);
-            const ErrorMessage errmsg(std::list<ErrorMessage::FileLocation>(),
+            const ErrorMessage errmsg({},
                                       emptyString,
                                       Severity::error,
                                       msg,
@@ -1338,7 +1338,7 @@ void CppCheck::executeRules(const std::string &tokenlist, const TokenList &list)
             if (pcreExecRet < 0) {
                 const std::string errorMessage = pcreErrorCodeToString(pcreExecRet);
                 if (!errorMessage.empty()) {
-                    const ErrorMessage errmsg(std::list<ErrorMessage::FileLocation>(),
+                    const ErrorMessage errmsg({},
                                               emptyString,
                                               Severity::error,
                                               std::string("pcre_exec failed: ") + errorMessage,
