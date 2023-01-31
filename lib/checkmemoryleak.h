@@ -35,6 +35,7 @@
 #include "check.h"
 #include "config.h"
 #include "errortypes.h"
+#include "safeptr.h"
 #include "tokenize.h"
 
 #include <list>
@@ -57,7 +58,7 @@ private:
     const Tokenizer * const mTokenizer_;
 
     /** ErrorLogger used to report errors */
-    ErrorLogger * const mErrorLogger_;
+    safe_ptr<ErrorLogger> mErrorLogger_;
 
     /** Enabled standards */
     const Settings * const mSettings_;
@@ -70,7 +71,7 @@ private:
      * @param msg text
      * @param cwe cwe number
      */
-    void reportErr(const Token *tok, Severity::SeverityType severity, const std::string &id, const std::string &msg, const CWE &cwe) const;
+    void reportErr(const Token *tok, Severity::SeverityType severity, const std::string &id, const std::string &msg, const CWE &cwe);
 
     /**
      * Report error. Similar with the function Check::reportError
@@ -80,7 +81,7 @@ private:
      * @param msg text
      * @param cwe cwe number
      */
-    void reportErr(const std::list<const Token *> &callstack, Severity::SeverityType severity, const std::string &id, const std::string &msg, const CWE &cwe) const;
+    void reportErr(const std::list<const Token *> &callstack, Severity::SeverityType severity, const std::string &id, const std::string &msg, const CWE &cwe);
 
 public:
     CheckMemoryLeak() = delete;
@@ -93,7 +94,7 @@ public:
     /** @brief What type of allocation are used.. the "Many" means that several types of allocation and deallocation are used */
     enum AllocType { No, Malloc, New, NewArray, File, Fd, Pipe, OtherMem, OtherRes, Many };
 
-    void memoryLeak(const Token *tok, const std::string &varname, AllocType alloctype) const;
+    void memoryLeak(const Token *tok, const std::string &varname, AllocType alloctype);
 
     /**
      * @brief Get type of deallocation at given position
@@ -128,18 +129,18 @@ public:
      * @param tok token where memory is leaked
      * @param varname name of variable
      */
-    void memleakError(const Token *tok, const std::string &varname) const;
+    void memleakError(const Token *tok, const std::string &varname);
 
     /**
      * Report that there is a resource leak (fopen/popen/etc)
      * @param tok token where resource is leaked
      * @param varname name of variable
      */
-    void resourceLeakError(const Token *tok, const std::string &varname) const;
+    void resourceLeakError(const Token *tok, const std::string &varname);
 
-    void deallocuseError(const Token *tok, const std::string &varname) const;
-    void mismatchAllocDealloc(const std::list<const Token *> &callstack, const std::string &varname) const;
-    void memleakUponReallocFailureError(const Token *tok, const std::string &reallocfunction, const std::string &varname) const;
+    void deallocuseError(const Token *tok, const std::string &varname);
+    void mismatchAllocDealloc(const std::list<const Token *> &callstack, const std::string &varname);
+    void memleakUponReallocFailureError(const Token *tok, const std::string &reallocfunction, const std::string &varname);
 
     /** What type of allocated memory does the given function return? */
     AllocType functionReturnType(const Function* func, std::list<const Function*> *callstack = nullptr) const;
