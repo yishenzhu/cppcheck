@@ -56,6 +56,7 @@ HEADERS += $${PWD}/analyzer.h \
            $${PWD}/preprocessor.h \
            $${PWD}/programmemory.h \
            $${PWD}/reverseanalyzer.h \
+           $${PWD}/safeptr.h \
            $${PWD}/settings.h \
            $${PWD}/smallvector.h \
            $${PWD}/standards.h \
