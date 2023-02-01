@@ -21,6 +21,7 @@
 
 #include "color.h"
 #include "errorlogger.h"
+#include "safeptr.h"
 
 #include <cstdio>
 #include <ctime>
@@ -181,7 +182,7 @@ private:
     /**
      * Error output
      */
-    std::ofstream* mErrorOutput{};
+    safe_ptr<std::ofstream> mErrorOutput;
 };
 
 #endif // CPPCHECKEXECUTOR_H

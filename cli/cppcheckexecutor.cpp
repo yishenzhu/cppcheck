@@ -89,7 +89,7 @@ class XMLErrorMessagesLogger : public ErrorLogger
 
 CppCheckExecutor::~CppCheckExecutor()
 {
-    delete mErrorOutput;
+    delete mErrorOutput.get();
 }
 
 bool CppCheckExecutor::parseFromArgs(Settings &settings, int argc, const char* const argv[])
@@ -280,7 +280,7 @@ int CppCheckExecutor::check_internal(CppCheck& cppcheck)
         mLatestProgressOutputTime = std::time(nullptr);
 
     if (!settings.outputFile.empty()) {
-        mErrorOutput = new std::ofstream(settings.outputFile);
+        mErrorOutput = safe_ptr<std::ofstream>(new std::ofstream(settings.outputFile));
     }
 
     if (settings.xml) {
