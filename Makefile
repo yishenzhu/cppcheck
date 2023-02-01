@@ -539,7 +539,7 @@ $(libcppdir)/checkunusedvar.o: lib/checkunusedvar.cpp externals/simplecpp/simple
 $(libcppdir)/checkvaarg.o: lib/checkvaarg.cpp lib/astutils.h lib/check.h lib/checkvaarg.h lib/config.h lib/errortypes.h lib/importproject.h lib/library.h lib/mathlib.h lib/platform.h lib/safeptr.h lib/settings.h lib/smallvector.h lib/sourcelocation.h lib/standards.h lib/suppressions.h lib/symboldatabase.h lib/templatesimplifier.h lib/token.h lib/tokenize.h lib/tokenlist.h lib/utils.h lib/vfvalue.h
 	$(CXX) ${INCLUDE_FOR_LIB} $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $(libcppdir)/checkvaarg.cpp
 
-$(libcppdir)/clangimport.o: lib/clangimport.cpp lib/clangimport.h lib/config.h lib/errortypes.h lib/importproject.h lib/library.h lib/mathlib.h lib/platform.h lib/settings.h lib/sourcelocation.h lib/standards.h lib/suppressions.h lib/symboldatabase.h lib/templatesimplifier.h lib/token.h lib/tokenize.h lib/tokenlist.h lib/utils.h lib/vfvalue.h
+$(libcppdir)/clangimport.o: lib/clangimport.cpp lib/clangimport.h lib/config.h lib/errortypes.h lib/importproject.h lib/library.h lib/mathlib.h lib/platform.h lib/safeptr.h lib/settings.h lib/sourcelocation.h lib/standards.h lib/suppressions.h lib/symboldatabase.h lib/templatesimplifier.h lib/token.h lib/tokenize.h lib/tokenlist.h lib/utils.h lib/vfvalue.h
 	$(CXX) ${INCLUDE_FOR_LIB} $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $(libcppdir)/clangimport.cpp
 
 $(libcppdir)/color.o: lib/color.cpp lib/color.h lib/config.h
@@ -557,13 +557,13 @@ $(libcppdir)/errorlogger.o: lib/errorlogger.cpp externals/tinyxml2/tinyxml2.h li
 $(libcppdir)/errortypes.o: lib/errortypes.cpp lib/config.h lib/errortypes.h
 	$(CXX) ${INCLUDE_FOR_LIB} $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $(libcppdir)/errortypes.cpp
 
-$(libcppdir)/forwardanalyzer.o: lib/forwardanalyzer.cpp lib/analyzer.h lib/astutils.h lib/config.h lib/errortypes.h lib/forwardanalyzer.h lib/importproject.h lib/library.h lib/mathlib.h lib/platform.h lib/settings.h lib/smallvector.h lib/sourcelocation.h lib/standards.h lib/suppressions.h lib/symboldatabase.h lib/templatesimplifier.h lib/token.h lib/utils.h lib/valueptr.h lib/vfvalue.h
+$(libcppdir)/forwardanalyzer.o: lib/forwardanalyzer.cpp lib/analyzer.h lib/astutils.h lib/config.h lib/errortypes.h lib/forwardanalyzer.h lib/importproject.h lib/library.h lib/mathlib.h lib/platform.h lib/safeptr.h lib/settings.h lib/smallvector.h lib/sourcelocation.h lib/standards.h lib/suppressions.h lib/symboldatabase.h lib/templatesimplifier.h lib/token.h lib/utils.h lib/valueptr.h lib/vfvalue.h
 	$(CXX) ${INCLUDE_FOR_LIB} $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $(libcppdir)/forwardanalyzer.cpp
 
-$(libcppdir)/fwdanalysis.o: lib/fwdanalysis.cpp lib/astutils.h lib/config.h lib/errortypes.h lib/fwdanalysis.h lib/library.h lib/mathlib.h lib/smallvector.h lib/sourcelocation.h lib/standards.h lib/symboldatabase.h lib/templatesimplifier.h lib/token.h lib/utils.h lib/vfvalue.h
+$(libcppdir)/fwdanalysis.o: lib/fwdanalysis.cpp lib/astutils.h lib/config.h lib/errortypes.h lib/fwdanalysis.h lib/library.h lib/mathlib.h lib/safeptr.h lib/smallvector.h lib/sourcelocation.h lib/standards.h lib/symboldatabase.h lib/templatesimplifier.h lib/token.h lib/utils.h lib/vfvalue.h
 	$(CXX) ${INCLUDE_FOR_LIB} $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $(libcppdir)/fwdanalysis.cpp
 
-$(libcppdir)/importproject.o: lib/importproject.cpp externals/picojson/picojson.h externals/simplecpp/simplecpp.h externals/tinyxml2/tinyxml2.h lib/config.h lib/errortypes.h lib/importproject.h lib/json.h lib/library.h lib/mathlib.h lib/path.h lib/platform.h lib/settings.h lib/standards.h lib/suppressions.h lib/templatesimplifier.h lib/token.h lib/tokenize.h lib/tokenlist.h lib/utils.h lib/vfvalue.h
+$(libcppdir)/importproject.o: lib/importproject.cpp externals/picojson/picojson.h externals/simplecpp/simplecpp.h externals/tinyxml2/tinyxml2.h lib/config.h lib/errortypes.h lib/importproject.h lib/json.h lib/library.h lib/mathlib.h lib/path.h lib/platform.h lib/safeptr.h lib/settings.h lib/standards.h lib/suppressions.h lib/templatesimplifier.h lib/token.h lib/tokenize.h lib/tokenlist.h lib/utils.h lib/vfvalue.h
 	$(CXX) ${INCLUDE_FOR_LIB} $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $(libcppdir)/importproject.cpp
 
 $(libcppdir)/infer.o: lib/infer.cpp lib/calculate.h lib/config.h lib/errortypes.h lib/infer.h lib/mathlib.h lib/valueptr.h lib/vfvalue.h
@@ -572,7 +572,7 @@ $(libcppdir)/infer.o: lib/infer.cpp lib/calculate.h lib/config.h lib/errortypes.
 $(libcppdir)/keywords.o: lib/keywords.cpp lib/config.h lib/keywords.h lib/standards.h lib/utils.h
 	$(CXX) ${INCLUDE_FOR_LIB} $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $(libcppdir)/keywords.cpp
 
-$(libcppdir)/library.o: lib/library.cpp externals/tinyxml2/tinyxml2.h lib/astutils.h lib/config.h lib/errortypes.h lib/library.h lib/mathlib.h lib/path.h lib/smallvector.h lib/sourcelocation.h lib/standards.h lib/symboldatabase.h lib/templatesimplifier.h lib/token.h lib/tokenlist.h lib/utils.h lib/valueflow.h lib/vfvalue.h
+$(libcppdir)/library.o: lib/library.cpp externals/tinyxml2/tinyxml2.h lib/astutils.h lib/config.h lib/errortypes.h lib/library.h lib/mathlib.h lib/path.h lib/safeptr.h lib/smallvector.h lib/sourcelocation.h lib/standards.h lib/symboldatabase.h lib/templatesimplifier.h lib/token.h lib/tokenlist.h lib/utils.h lib/valueflow.h lib/vfvalue.h
 	$(CXX) ${INCLUDE_FOR_LIB} $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $(libcppdir)/library.cpp
 
 $(libcppdir)/mathlib.o: lib/mathlib.cpp externals/simplecpp/simplecpp.h lib/config.h lib/errortypes.h lib/mathlib.h lib/utils.h
@@ -581,7 +581,7 @@ $(libcppdir)/mathlib.o: lib/mathlib.cpp externals/simplecpp/simplecpp.h lib/conf
 $(libcppdir)/path.o: lib/path.cpp externals/simplecpp/simplecpp.h lib/config.h lib/path.h lib/utils.h
 	$(CXX) ${INCLUDE_FOR_LIB} $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $(libcppdir)/path.cpp
 
-$(libcppdir)/pathanalysis.o: lib/pathanalysis.cpp lib/astutils.h lib/config.h lib/errortypes.h lib/library.h lib/mathlib.h lib/pathanalysis.h lib/smallvector.h lib/sourcelocation.h lib/standards.h lib/symboldatabase.h lib/templatesimplifier.h lib/token.h lib/utils.h lib/vfvalue.h
+$(libcppdir)/pathanalysis.o: lib/pathanalysis.cpp lib/astutils.h lib/config.h lib/errortypes.h lib/library.h lib/mathlib.h lib/pathanalysis.h lib/safeptr.h lib/smallvector.h lib/sourcelocation.h lib/standards.h lib/symboldatabase.h lib/templatesimplifier.h lib/token.h lib/utils.h lib/vfvalue.h
 	$(CXX) ${INCLUDE_FOR_LIB} $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $(libcppdir)/pathanalysis.cpp
 
 $(libcppdir)/pathmatch.o: lib/pathmatch.cpp lib/config.h lib/path.h lib/pathmatch.h lib/utils.h
@@ -593,37 +593,37 @@ $(libcppdir)/platform.o: lib/platform.cpp externals/tinyxml2/tinyxml2.h lib/conf
 $(libcppdir)/preprocessor.o: lib/preprocessor.cpp externals/simplecpp/simplecpp.h lib/color.h lib/config.h lib/errorlogger.h lib/errortypes.h lib/importproject.h lib/library.h lib/mathlib.h lib/path.h lib/platform.h lib/preprocessor.h lib/safeptr.h lib/settings.h lib/standards.h lib/suppressions.h lib/utils.h
 	$(CXX) ${INCLUDE_FOR_LIB} $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $(libcppdir)/preprocessor.cpp
 
-$(libcppdir)/programmemory.o: lib/programmemory.cpp lib/astutils.h lib/calculate.h lib/config.h lib/errortypes.h lib/importproject.h lib/infer.h lib/library.h lib/mathlib.h lib/platform.h lib/programmemory.h lib/settings.h lib/smallvector.h lib/sourcelocation.h lib/standards.h lib/suppressions.h lib/symboldatabase.h lib/templatesimplifier.h lib/token.h lib/utils.h lib/valueflow.h lib/valueptr.h lib/vfvalue.h
+$(libcppdir)/programmemory.o: lib/programmemory.cpp lib/astutils.h lib/calculate.h lib/config.h lib/errortypes.h lib/importproject.h lib/infer.h lib/library.h lib/mathlib.h lib/platform.h lib/programmemory.h lib/safeptr.h lib/settings.h lib/smallvector.h lib/sourcelocation.h lib/standards.h lib/suppressions.h lib/symboldatabase.h lib/templatesimplifier.h lib/token.h lib/utils.h lib/valueflow.h lib/valueptr.h lib/vfvalue.h
 	$(CXX) ${INCLUDE_FOR_LIB} $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $(libcppdir)/programmemory.cpp
 
-$(libcppdir)/reverseanalyzer.o: lib/reverseanalyzer.cpp lib/analyzer.h lib/astutils.h lib/config.h lib/errortypes.h lib/forwardanalyzer.h lib/importproject.h lib/library.h lib/mathlib.h lib/platform.h lib/reverseanalyzer.h lib/settings.h lib/smallvector.h lib/sourcelocation.h lib/standards.h lib/suppressions.h lib/symboldatabase.h lib/templatesimplifier.h lib/token.h lib/utils.h lib/valueptr.h lib/vfvalue.h
+$(libcppdir)/reverseanalyzer.o: lib/reverseanalyzer.cpp lib/analyzer.h lib/astutils.h lib/config.h lib/errortypes.h lib/forwardanalyzer.h lib/importproject.h lib/library.h lib/mathlib.h lib/platform.h lib/reverseanalyzer.h lib/safeptr.h lib/settings.h lib/smallvector.h lib/sourcelocation.h lib/standards.h lib/suppressions.h lib/symboldatabase.h lib/templatesimplifier.h lib/token.h lib/utils.h lib/valueptr.h lib/vfvalue.h
 	$(CXX) ${INCLUDE_FOR_LIB} $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $(libcppdir)/reverseanalyzer.cpp
 
 $(libcppdir)/settings.o: lib/settings.cpp externals/picojson/picojson.h lib/config.h lib/errortypes.h lib/importproject.h lib/json.h lib/library.h lib/mathlib.h lib/path.h lib/platform.h lib/settings.h lib/standards.h lib/summaries.h lib/suppressions.h lib/timer.h lib/utils.h lib/vfvalue.h
 	$(CXX) ${INCLUDE_FOR_LIB} $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $(libcppdir)/settings.cpp
 
-$(libcppdir)/summaries.o: lib/summaries.cpp lib/analyzerinfo.h lib/config.h lib/errortypes.h lib/importproject.h lib/library.h lib/mathlib.h lib/platform.h lib/settings.h lib/sourcelocation.h lib/standards.h lib/summaries.h lib/suppressions.h lib/symboldatabase.h lib/templatesimplifier.h lib/token.h lib/tokenize.h lib/tokenlist.h lib/utils.h lib/vfvalue.h
+$(libcppdir)/summaries.o: lib/summaries.cpp lib/analyzerinfo.h lib/config.h lib/errortypes.h lib/importproject.h lib/library.h lib/mathlib.h lib/platform.h lib/safeptr.h lib/settings.h lib/sourcelocation.h lib/standards.h lib/summaries.h lib/suppressions.h lib/symboldatabase.h lib/templatesimplifier.h lib/token.h lib/tokenize.h lib/tokenlist.h lib/utils.h lib/vfvalue.h
 	$(CXX) ${INCLUDE_FOR_LIB} $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $(libcppdir)/summaries.cpp
 
-$(libcppdir)/suppressions.o: lib/suppressions.cpp externals/tinyxml2/tinyxml2.h lib/color.h lib/config.h lib/errorlogger.h lib/errortypes.h lib/mathlib.h lib/path.h lib/suppressions.h lib/templatesimplifier.h lib/token.h lib/tokenize.h lib/tokenlist.h lib/utils.h lib/vfvalue.h
+$(libcppdir)/suppressions.o: lib/suppressions.cpp externals/tinyxml2/tinyxml2.h lib/color.h lib/config.h lib/errorlogger.h lib/errortypes.h lib/mathlib.h lib/path.h lib/safeptr.h lib/suppressions.h lib/templatesimplifier.h lib/token.h lib/tokenize.h lib/tokenlist.h lib/utils.h lib/vfvalue.h
 	$(CXX) ${INCLUDE_FOR_LIB} $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $(libcppdir)/suppressions.cpp
 
-$(libcppdir)/symboldatabase.o: lib/symboldatabase.cpp lib/astutils.h lib/color.h lib/config.h lib/errorlogger.h lib/errortypes.h lib/importproject.h lib/keywords.h lib/library.h lib/mathlib.h lib/path.h lib/platform.h lib/settings.h lib/smallvector.h lib/sourcelocation.h lib/standards.h lib/suppressions.h lib/symboldatabase.h lib/templatesimplifier.h lib/token.h lib/tokenize.h lib/tokenlist.h lib/utils.h lib/valueflow.h lib/vfvalue.h
+$(libcppdir)/symboldatabase.o: lib/symboldatabase.cpp lib/astutils.h lib/color.h lib/config.h lib/errorlogger.h lib/errortypes.h lib/importproject.h lib/keywords.h lib/library.h lib/mathlib.h lib/path.h lib/platform.h lib/safeptr.h lib/settings.h lib/smallvector.h lib/sourcelocation.h lib/standards.h lib/suppressions.h lib/symboldatabase.h lib/templatesimplifier.h lib/token.h lib/tokenize.h lib/tokenlist.h lib/utils.h lib/valueflow.h lib/vfvalue.h
 	$(CXX) ${INCLUDE_FOR_LIB} $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $(libcppdir)/symboldatabase.cpp
 
-$(libcppdir)/templatesimplifier.o: lib/templatesimplifier.cpp lib/color.h lib/config.h lib/errorlogger.h lib/errortypes.h lib/importproject.h lib/library.h lib/mathlib.h lib/platform.h lib/settings.h lib/standards.h lib/suppressions.h lib/templatesimplifier.h lib/token.h lib/tokenize.h lib/tokenlist.h lib/utils.h lib/vfvalue.h
+$(libcppdir)/templatesimplifier.o: lib/templatesimplifier.cpp lib/color.h lib/config.h lib/errorlogger.h lib/errortypes.h lib/importproject.h lib/library.h lib/mathlib.h lib/platform.h lib/safeptr.h lib/settings.h lib/standards.h lib/suppressions.h lib/templatesimplifier.h lib/token.h lib/tokenize.h lib/tokenlist.h lib/utils.h lib/vfvalue.h
 	$(CXX) ${INCLUDE_FOR_LIB} $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $(libcppdir)/templatesimplifier.cpp
 
 $(libcppdir)/timer.o: lib/timer.cpp lib/config.h lib/timer.h
 	$(CXX) ${INCLUDE_FOR_LIB} $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $(libcppdir)/timer.cpp
 
-$(libcppdir)/token.o: lib/token.cpp lib/astutils.h lib/config.h lib/errortypes.h lib/importproject.h lib/library.h lib/mathlib.h lib/platform.h lib/settings.h lib/smallvector.h lib/sourcelocation.h lib/standards.h lib/suppressions.h lib/symboldatabase.h lib/templatesimplifier.h lib/token.h lib/tokenlist.h lib/tokenrange.h lib/utils.h lib/valueflow.h lib/vfvalue.h
+$(libcppdir)/token.o: lib/token.cpp lib/astutils.h lib/config.h lib/errortypes.h lib/importproject.h lib/library.h lib/mathlib.h lib/platform.h lib/safeptr.h lib/settings.h lib/smallvector.h lib/sourcelocation.h lib/standards.h lib/suppressions.h lib/symboldatabase.h lib/templatesimplifier.h lib/token.h lib/tokenlist.h lib/tokenrange.h lib/utils.h lib/valueflow.h lib/vfvalue.h
 	$(CXX) ${INCLUDE_FOR_LIB} $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $(libcppdir)/token.cpp
 
 $(libcppdir)/tokenize.o: lib/tokenize.cpp externals/simplecpp/simplecpp.h lib/check.h lib/color.h lib/config.h lib/errorlogger.h lib/errortypes.h lib/importproject.h lib/library.h lib/mathlib.h lib/platform.h lib/preprocessor.h lib/safeptr.h lib/settings.h lib/sourcelocation.h lib/standards.h lib/summaries.h lib/suppressions.h lib/symboldatabase.h lib/templatesimplifier.h lib/timer.h lib/token.h lib/tokenize.h lib/tokenlist.h lib/utils.h lib/valueflow.h lib/vfvalue.h
 	$(CXX) ${INCLUDE_FOR_LIB} $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $(libcppdir)/tokenize.cpp
 
-$(libcppdir)/tokenlist.o: lib/tokenlist.cpp externals/simplecpp/simplecpp.h lib/astutils.h lib/color.h lib/config.h lib/errorlogger.h lib/errortypes.h lib/importproject.h lib/keywords.h lib/library.h lib/mathlib.h lib/path.h lib/platform.h lib/settings.h lib/smallvector.h lib/sourcelocation.h lib/standards.h lib/suppressions.h lib/symboldatabase.h lib/templatesimplifier.h lib/token.h lib/tokenlist.h lib/utils.h lib/vfvalue.h
+$(libcppdir)/tokenlist.o: lib/tokenlist.cpp externals/simplecpp/simplecpp.h lib/astutils.h lib/color.h lib/config.h lib/errorlogger.h lib/errortypes.h lib/importproject.h lib/keywords.h lib/library.h lib/mathlib.h lib/path.h lib/platform.h lib/safeptr.h lib/settings.h lib/smallvector.h lib/sourcelocation.h lib/standards.h lib/suppressions.h lib/symboldatabase.h lib/templatesimplifier.h lib/token.h lib/tokenlist.h lib/utils.h lib/vfvalue.h
 	$(CXX) ${INCLUDE_FOR_LIB} $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $(libcppdir)/tokenlist.cpp
 
 $(libcppdir)/utils.o: lib/utils.cpp lib/config.h lib/utils.h
@@ -632,7 +632,7 @@ $(libcppdir)/utils.o: lib/utils.cpp lib/config.h lib/utils.h
 $(libcppdir)/valueflow.o: lib/valueflow.cpp lib/analyzer.h lib/astutils.h lib/calculate.h lib/check.h lib/checkuninitvar.h lib/color.h lib/config.h lib/ctu.h lib/errorlogger.h lib/errortypes.h lib/forwardanalyzer.h lib/importproject.h lib/infer.h lib/library.h lib/mathlib.h lib/path.h lib/platform.h lib/programmemory.h lib/reverseanalyzer.h lib/safeptr.h lib/settings.h lib/smallvector.h lib/sourcelocation.h lib/standards.h lib/suppressions.h lib/symboldatabase.h lib/templatesimplifier.h lib/timer.h lib/token.h lib/tokenize.h lib/tokenlist.h lib/utils.h lib/valueflow.h lib/valueptr.h lib/vfvalue.h
 	$(CXX) ${INCLUDE_FOR_LIB} $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $(libcppdir)/valueflow.cpp
 
-$(libcppdir)/vfvalue.o: lib/vfvalue.cpp lib/config.h lib/errortypes.h lib/mathlib.h lib/templatesimplifier.h lib/token.h lib/utils.h lib/vfvalue.h
+$(libcppdir)/vfvalue.o: lib/vfvalue.cpp lib/config.h lib/errortypes.h lib/mathlib.h lib/safeptr.h lib/templatesimplifier.h lib/token.h lib/utils.h lib/vfvalue.h
 	$(CXX) ${INCLUDE_FOR_LIB} $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $(libcppdir)/vfvalue.cpp
 
 cli/cmdlineparser.o: cli/cmdlineparser.cpp cli/cmdlineparser.h cli/cppcheckexecutor.h cli/filelister.h externals/tinyxml2/tinyxml2.h lib/check.h lib/color.h lib/config.h lib/errorlogger.h lib/errortypes.h lib/importproject.h lib/library.h lib/mathlib.h lib/path.h lib/platform.h lib/safeptr.h lib/settings.h lib/standards.h lib/suppressions.h lib/timer.h lib/utils.h

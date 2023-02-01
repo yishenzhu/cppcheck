@@ -23,6 +23,7 @@
 //---------------------------------------------------------------------------
 
 #include "config.h"
+#include "safeptr.h"
 
 #include <ctime>
 #include <list>
@@ -498,7 +499,7 @@ private:
     Tokenizer &mTokenizer;
     TokenList &mTokenList;
     const Settings &mSettings;
-    ErrorLogger *mErrorLogger;
+    safe_ptr<ErrorLogger> mErrorLogger;
     bool mChanged{};
 
     std::list<TokenAndName> mTemplateDeclarations;
