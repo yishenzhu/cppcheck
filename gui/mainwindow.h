@@ -260,7 +260,7 @@ private:
      * @param checkLibrary Flag to indicate if the library should be checked.
      * @param checkConfiguration Flag to indicate if the configuration should be checked.
      */
-    void analyzeProject(const ProjectFile *projectFile, const bool checkLibrary = false, const bool checkConfiguration = false);
+    void analyzeProject(const ProjectFile *projectFile, bool checkLibrary = false, bool checkConfiguration = false);
 
     /**
      * @brief Set current language
@@ -299,7 +299,7 @@ private:
      * @param checkLibrary Flag to indicate if library should be checked
      * @param checkConfiguration Flag to indicate if the configuration should be checked.
      */
-    void doAnalyzeProject(ImportProject p, const bool checkLibrary = false, const bool checkConfiguration = false);
+    void doAnalyzeProject(ImportProject p, bool checkLibrary = false, bool checkConfiguration = false);
 
     /**
      * @brief Analyze all files specified in parameter files
@@ -308,7 +308,7 @@ private:
      * @param checkLibrary Flag to indicate if library should be checked
      * @param checkConfiguration Flag to indicate if the configuration should be checked.
      */
-    void doAnalyzeFiles(const QStringList &files, const bool checkLibrary = false, const bool checkConfiguration = false);
+    void doAnalyzeFiles(const QStringList &files, bool checkLibrary = false, bool checkConfiguration = false);
 
     /**
      * @brief Get our default cppcheck settings and read project file.

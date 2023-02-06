@@ -63,7 +63,7 @@ public:
     void parseTokens(const Tokenizer &tokenizer, const char FileName[], const Settings *settings);
 
     // Return true if an error is reported.
-    bool check(ErrorLogger * const errorLogger, const Settings& settings) const;
+    bool check(ErrorLogger * errorLogger, const Settings& settings) const;
 
     /** @brief Parse current TU and extract file info */
     Check::FileInfo *getFileInfo(const Tokenizer *tokenizer, const Settings *settings) const override;
@@ -76,7 +76,7 @@ public:
     std::string analyzerInfo() const;
 
     /** @brief Combine and analyze all analyzerInfos for all TUs */
-    static void analyseWholeProgram(const Settings &settings, ErrorLogger * const errorLogger, const std::string &buildDir);
+    static void analyseWholeProgram(const Settings &settings, ErrorLogger * errorLogger, const std::string &buildDir);
 
 private:
 
@@ -89,7 +89,7 @@ private:
     /**
      * Dummy implementation, just to provide error for --errorlist
      */
-    static void unusedFunctionError(ErrorLogger * const errorLogger,
+    static void unusedFunctionError(ErrorLogger * errorLogger,
                                     const std::string &filename, unsigned int lineNumber,
                                     const std::string &funcname);
 
