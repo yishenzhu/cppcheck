@@ -43,8 +43,7 @@
 
 // C++11 noexcept
 #if (defined(__GNUC__) && (__GNUC__ >= 5)) \
-    || defined(__clang__) \
-    || defined(__CPPCHECK__)
+    || defined(__clang__)
 #  define NOEXCEPT noexcept
 #else
 #  define NOEXCEPT
@@ -58,8 +57,7 @@
 #endif
 #if !defined(NORETURN)
 #  if (defined(__GNUC__) && (__GNUC__ >= 5)) \
-    || defined(__clang__) \
-    || defined(__CPPCHECK__)
+    || defined(__clang__)
 #    define NORETURN [[noreturn]]
 #  elif defined(__GNUC__)
 #    define NORETURN __attribute__((noreturn))
@@ -79,8 +77,7 @@
 
 // unused
 #if defined(__GNUC__) \
-    || defined(__clang__) \
-    || defined(__CPPCHECK__)
+    || defined(__clang__)
 #  define UNUSED __attribute__((unused))
 #else
 #  define UNUSED
@@ -130,7 +127,7 @@ static const std::string emptyString;
 #elif defined(USE_THREADS)
 #define THREADING_MODEL_THREAD
 #define STDCALL
-#elif ((defined(__GNUC__) || defined(__sun)) && !defined(__MINGW32__)) || defined(__CPPCHECK__)
+#elif (defined(__GNUC__) || defined(__sun)) && !defined(__MINGW32__)
 #define THREADING_MODEL_FORK
 #define STDCALL
 #else
