@@ -39,6 +39,7 @@ bool cppcheck::Platform::set(Type t)
     case Type::Unspecified: // unknown type sizes (sizes etc are set but are not known)
     case Type::Native: // same as system this code was compile on
         type = t;
+        // TODO: set windows?
         sizeof_bool = sizeof(bool);
         sizeof_short = sizeof(short);
         sizeof_int = sizeof(int);
@@ -64,6 +65,8 @@ bool cppcheck::Platform::set(Type t)
     case Type::Win32W:
     case Type::Win32A:
         type = t;
+        windows = true;
+        win_ansi = (t == Type::Win32A);
         sizeof_bool = 1; // 4 in Visual C++ 4.2
         sizeof_short = 2;
         sizeof_int = 4;
@@ -84,6 +87,8 @@ bool cppcheck::Platform::set(Type t)
         return true;
     case Type::Win64:
         type = t;
+        windows = true;
+        // TODO: win_ansi
         sizeof_bool = 1;
         sizeof_short = 2;
         sizeof_int = 4;

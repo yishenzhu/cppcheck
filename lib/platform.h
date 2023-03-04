@@ -100,6 +100,9 @@ namespace cppcheck {
 
         char defaultSign;  // unsigned:'u', signed:'s', unknown:'\0'
 
+        bool windows{false}; // indicates if the platform is Windows
+        bool win_ansi{false}; // indicates if Windows should use the "<func>A()" ANSI variants
+
         enum Type {
             Unspecified, // No platform specified
             Native, // whatever system this code was compiled on
@@ -137,9 +140,7 @@ namespace cppcheck {
          * @return true if Windows platform type.
          */
         bool isWindows() const {
-            return type == Type::Win32A ||
-                   type == Type::Win32W ||
-                   type == Type::Win64;
+            return windows;
         }
 
         const char *toString() const {
