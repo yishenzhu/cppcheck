@@ -786,6 +786,7 @@ Library::Error Library::loadFunction(const tinyxml2::XMLElement * const node, co
                         if (!valueattr)
                             return Error(ErrorCode::MISSING_ATTRIBUTE, "value");
                         long long minsizevalue = 0;
+                        // TODO: use different conversion function
                         try {
                             minsizevalue = strToInt<long long>(valueattr);
                         } catch (const std::runtime_error&) {
@@ -920,13 +921,13 @@ bool Library::isIntArgValid(const Token *ftok, int argnr, const MathLib::bigint 
     TokenList tokenList(nullptr);
     gettokenlistfromvalid(ac->valid, tokenList);
     for (const Token *tok = tokenList.front(); tok; tok = tok->next()) {
-        if (tok->isNumber() && argvalue == MathLib::toLongNumber(tok->str()))
+        if (tok->isNumber() && argvalue == MathLib::toLongNumber(tok))
             return true;
-        if (Token::Match(tok, "%num% : %num%") && argvalue >= MathLib::toLongNumber(tok->str()) && argvalue <= MathLib::toLongNumber(tok->strAt(2)))
+        if (Token::Match(tok, "%num% : %num%") && argvalue >= MathLib::toLongNumber(tok) && argvalue <= MathLib::toLongNumber(tok, 2))
             return true;
-        if (Token::Match(tok, "%num% : ,") && argvalue >= MathLib::toLongNumber(tok->str()))
+        if (Token::Match(tok, "%num% : ,") && argvalue >= MathLib::toLongNumber(tok))
             return true;
-        if ((!tok->previous() || tok->previous()->str() == ",") && Token::Match(tok,": %num%") && argvalue <= MathLib::toLongNumber(tok->strAt(1)))
+        if ((!tok->previous() || tok->previous()->str() == ",") && Token::Match(tok,": %num%") && argvalue <= MathLib::toLongNumber(tok, 1))
             return true;
     }
     return false;
@@ -940,11 +941,11 @@ bool Library::isFloatArgValid(const Token *ftok, int argnr, double argvalue) con
     TokenList tokenList(nullptr);
     gettokenlistfromvalid(ac->valid, tokenList);
     for (const Token *tok = tokenList.front(); tok; tok = tok->next()) {
-        if (Token::Match(tok, "%num% : %num%") && argvalue >= MathLib::toDoubleNumber(tok->str()) && argvalue <= MathLib::toDoubleNumber(tok->strAt(2)))
+        if (Token::Match(tok, "%num% : %num%") && argvalue >= MathLib::toDoubleNumber(tok) && argvalue <= MathLib::toDoubleNumber(tok, 2))
             return true;
-        if (Token::Match(tok, "%num% : ,") && argvalue >= MathLib::toDoubleNumber(tok->str()))
+        if (Token::Match(tok, "%num% : ,") && argvalue >= MathLib::toDoubleNumber(tok))
             return true;
-        if ((!tok->previous() || tok->previous()->str() == ",") && Token::Match(tok,": %num%") && argvalue <= MathLib::toDoubleNumber(tok->strAt(1)))
+        if ((!tok->previous() || tok->previous()->str() == ",") && Token::Match(tok,": %num%") && argvalue <= MathLib::toDoubleNumber(tok, 1))
             return true;
         if (Token::Match(tok, "%num%") && MathLib::isFloat(tok->str()) && MathLib::isEqual(tok->str(), MathLib::toString(argvalue)))
             return true;

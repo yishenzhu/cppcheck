@@ -430,14 +430,16 @@ void CheckFunctions::checkMathFunctions()
             if (printWarnings && Token::Match(tok, "%name% ( !!)")) {
                 if (tok->strAt(-1) != "."
                     && Token::Match(tok, "log|logf|logl|log10|log10f|log10l|log2|log2f|log2l ( %num% )")) {
-                    const std::string& number = tok->strAt(2);
-                    if ((MathLib::isInt(number) && MathLib::toLongNumber(number) <= 0) ||
-                        (MathLib::isFloat(number) && MathLib::toDoubleNumber(number) <= 0.))
+                    const Token* tok2 = tok->tokAt(2);
+                    const std::string& number = tok2->str();
+                    if ((MathLib::isInt(number) && MathLib::toLongNumber(number, tok2) <= 0) ||
+                        (MathLib::isFloat(number) && MathLib::toDoubleNumber(number, tok2) <= 0.))
                         mathfunctionCallWarning(tok);
                 } else if (Token::Match(tok, "log1p|log1pf|log1pl ( %num% )")) {
-                    const std::string& number = tok->strAt(2);
-                    if ((MathLib::isInt(number) && MathLib::toLongNumber(number) <= -1) ||
-                        (MathLib::isFloat(number) && MathLib::toDoubleNumber(number) <= -1.))
+                    const Token* tok2 = tok->tokAt(2);
+                    const std::string& number = tok2->str();
+                    if ((MathLib::isInt(number) && MathLib::toLongNumber(number, tok2) <= -1) ||
+                        (MathLib::isFloat(number) && MathLib::toDoubleNumber(number, tok2) <= -1.))
                         mathfunctionCallWarning(tok);
                 }
                 // atan2 ( x , y): x and y can not be zero, because this is mathematically not defined
@@ -564,7 +566,7 @@ void CheckFunctions::memsetInvalid2ndParam()
             }
 
             if (printWarning && secondParamTok->isNumber()) { // Check if the second parameter is a literal and is out of range
-                const long long int value = MathLib::toLongNumber(secondParamTok->str());
+                const long long int value = MathLib::toLongNumber(secondParamTok);
                 const long long sCharMin = mSettings->platform.signedCharMin();
                 const long long uCharMax = mSettings->platform.unsignedCharMax();
                 if (value < sCharMin || value > uCharMax)
