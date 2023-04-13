@@ -153,7 +153,6 @@ static const std::unordered_set<std::string> cpp23_keywords_all = cpp20_keywords
 // cppcheck-suppress unusedFunction
 const std::unordered_set<std::string>& Keywords::getAll(Standards::cstd_t cStd)
 {
-    // cppcheck-suppress missingReturn
     switch (cStd) {
     case Standards::cstd_t::C89:
         return c89_keywords_all;
@@ -169,7 +168,6 @@ const std::unordered_set<std::string>& Keywords::getAll(Standards::cstd_t cStd)
 
 // cppcheck-suppress unusedFunction
 const std::unordered_set<std::string>& Keywords::getAll(Standards::cppstd_t cppStd) {
-    // cppcheck-suppress missingReturn
     switch (cppStd) {
     case Standards::cppstd_t::CPP03:
         return cpp03_keywords_all;
@@ -190,7 +188,6 @@ const std::unordered_set<std::string>& Keywords::getAll(Standards::cppstd_t cppS
 // cppcheck-suppress unusedFunction
 const std::unordered_set<std::string>& Keywords::getOnly(Standards::cstd_t cStd)
 {
-    // cppcheck-suppress missingReturn
     switch (cStd) {
     case Standards::cstd_t::C89:
         return c89_keywords;
@@ -207,7 +204,6 @@ const std::unordered_set<std::string>& Keywords::getOnly(Standards::cstd_t cStd)
 // cppcheck-suppress unusedFunction
 const std::unordered_set<std::string>& Keywords::getOnly(Standards::cppstd_t cppStd)
 {
-    // cppcheck-suppress missingReturn
     switch (cppStd) {
     case Standards::cppstd_t::CPP03:
         return cpp03_keywords;
