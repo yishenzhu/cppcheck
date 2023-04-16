@@ -189,6 +189,7 @@ private:
             files[i->first] = i->second.size();
         }
 
+        // TODO: test with settings.project.fileSettings
         Settings settings;
         settings.exitCode = 1;
         settings.jobs = 1;
@@ -219,6 +220,7 @@ private:
         errout.str("");
         output.str("");
 
+        // TODO: test with settings.project.fileSettings
         std::map<std::string, std::size_t> files;
         files["test.cpp"] = strlen(code);
 
@@ -247,6 +249,7 @@ private:
         errout.str("");
         output.str("");
 
+        // TODO: test with settings.project.fileSettings
         std::map<std::string, std::size_t> files;
         files["test.cpp"] = strlen(code);
 

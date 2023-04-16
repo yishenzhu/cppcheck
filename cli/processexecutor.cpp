@@ -275,12 +275,14 @@ unsigned int ProcessExecutor::check()
                 CppCheck fileChecker(mSettings, pipewriter, false, CppCheckExecutor::executeCommand);
                 unsigned int resultOfCheck = 0;
 
+                // TODO: markup handling
                 if (iFileSettings != mSettings.project.fileSettings.end()) {
                     resultOfCheck = fileChecker.check(*iFileSettings);
                 } else {
                     // Read file from a file
                     resultOfCheck = fileChecker.check(iFile->first);
                 }
+                // TODO: call analyseClangTidy()
 
                 pipewriter.writeEnd(std::to_string(resultOfCheck));
                 std::exit(EXIT_SUCCESS);

@@ -96,6 +96,7 @@ public:
         });
     }
 
+    // TODO: handle markup files
     bool next(const std::string *&file, const ImportProject::FileSettings *&fs, std::size_t &fileSize) {
         std::lock_guard<std::mutex> l(mFileSync);
         if (mItNextFile != mFiles.end()) {
@@ -130,6 +131,7 @@ public:
         } else {
             // Read file from a file
             result = fileChecker.check(*file);
+            // TODO: call analyseClangTidy()
         }
         return result;
     }
