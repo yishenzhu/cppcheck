@@ -392,6 +392,8 @@ CppCheck::CppCheck(Settings &settings,
                    bool useGlobalSuppressions,
                    std::function<bool(std::string,std::vector<std::string>,std::string,std::string&)> executeCommand)
     : mSettings(settings)
+    , mSuppressions(settings.nomsg)
+    , mSuppressionsNoFail(settings.nofail)
     , mErrorLogger(errorLogger)
     , mExitCode(0)
     , mUseGlobalSuppressions(useGlobalSuppressions)
@@ -622,7 +624,7 @@ unsigned int CppCheck::check(const ImportProject::FileSettings &fs)
     }
     std::ifstream fin(fs.filename);
     const unsigned int returnValue = temp.checkFile(Path::simplifyPath(fs.filename), fs.cfg, fin);
-    mSettings.nomsg.addSuppressions(temp.mSettings.nomsg.getSuppressions());
+    mSuppressions.addSuppressions(temp.mSettings.nomsg.getSuppressions());
     return returnValue;
 }
 
@@ -905,7 +907,7 @@ unsigned int CppCheck::checkFile(const std::string& filename, const std::string 
                 }
 
                 // Need to call this even if the hash will skip this configuration
-                mSettings.nomsg.markUnmatchedInlineSuppressionsAsChecked(tokenizer);
+                mSuppressions.markUnmatchedInlineSuppressionsAsChecked(tokenizer);
 
                 // Skip if we already met the same simplified token list
                 if (mSettings.force || mSettings.maxConfigs > 1) {
@@ -1598,16 +1600,16 @@ void CppCheck::reportErr(const ErrorMessage &msg)
     const Suppressions::ErrorMessage errorMessage = msg.toSuppressionsErrorMessage();
 
     if (mUseGlobalSuppressions) {
-        if (mSettings.nomsg.isSuppressed(errorMessage)) {
+        if (mSuppressions.isSuppressed(errorMessage)) {
             return;
         }
     } else {
-        if (mSettings.nomsg.isSuppressedLocal(errorMessage)) {
+        if (mSuppressions.isSuppressedLocal(errorMessage)) {
             return;
         }
     }
 
-    if (!mSettings.nofail.isSuppressed(errorMessage) && !mSettings.nomsg.isSuppressed(errorMessage)) {
+    if (!mSuppressionsNoFail.isSuppressed(errorMessage) && !mSuppressions.isSuppressed(errorMessage)) {
         mExitCode = 1;
     }
 
@@ -1615,7 +1617,7 @@ void CppCheck::reportErr(const ErrorMessage &msg)
 
     mErrorLogger.reportErr(msg);
     // check if plistOutput should be populated and the current output file is open and the error is not suppressed
-    if (!mSettings.plistOutput.empty() && mPlistFile.is_open() && !mSettings.nomsg.isSuppressed(errorMessage)) {
+    if (!mSettings.plistOutput.empty() && mPlistFile.is_open() && !mSuppressions.isSuppressed(errorMessage)) {
         // add error to plist output file
         mPlistFile << ErrorLogger::plistData(msg);
     }

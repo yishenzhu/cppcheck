@@ -38,6 +38,7 @@
 #include <vector>
 
 class Tokenizer;
+class Suppressions;
 
 /// @addtogroup Core
 /// @{
@@ -197,7 +198,9 @@ private:
     void reportOut(const std::string &outmsg, Color c = Color::Reset) override;
 
     std::list<std::string> mErrorList;
-    Settings &mSettings;
+    const Settings &mSettings;
+    Suppressions &mSuppressions;
+    Suppressions &mSuppressionsNoFail;
 
     void reportProgress(const std::string &filename, const char stage[], const std::size_t value) override;
 
