@@ -28,8 +28,8 @@
 #include <sstream> // IWYU pragma: keep
 #include <utility>
 
-Executor::Executor(const std::map<std::string, std::size_t> &files, Settings &settings, Suppressions &suppressions, ErrorLogger &errorLogger)
-    : mFiles(files), mSettings(settings), mSuppressions(suppressions), mErrorLogger(errorLogger)
+Executor::Executor(const std::map<std::string, std::size_t> &files, Settings &settings, Suppressions &suppressions, Suppressions &suppressionsNoFail, ErrorLogger &errorLogger)
+    : mFiles(files), mSettings(settings), mSuppressions(suppressions), mSuppressionsNoFail(suppressionsNoFail), mErrorLogger(errorLogger)
 {}
 
 Executor::~Executor()

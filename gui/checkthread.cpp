@@ -115,7 +115,10 @@ void CheckThread::run()
 {
     assert(mSettings != nullptr);
 
-    CppCheck cppcheck(*mSettings, mSettings->nomsg, mSettings->nofail, mResult, true, executeCommand);
+    Suppressions suppressions;
+    Suppressions suppressionsNoFail;
+
+    CppCheck cppcheck(*mSettings, suppressions, suppressionsNoFail, mResult, true, executeCommand);
 
     mState = Running;
 

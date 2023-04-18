@@ -40,8 +40,8 @@
 
 enum class Color;
 
-ThreadExecutor::ThreadExecutor(const std::map<std::string, std::size_t> &files, Settings &settings, Suppressions &suppressions, ErrorLogger &errorLogger)
-    : Executor(files, settings, suppressions, errorLogger)
+ThreadExecutor::ThreadExecutor(const std::map<std::string, std::size_t> &files, Settings &settings, Suppressions &suppressions, Suppressions &suppressionsNoFail, ErrorLogger &errorLogger)
+    : Executor(files, settings, suppressions, suppressionsNoFail, errorLogger)
 {
     assert(mSettings.jobs > 1);
 }
@@ -118,15 +118,15 @@ public:
     }
 
     unsigned int check(ErrorLogger &errorLogger, const std::string *file, const ImportProject::FileSettings *fs) const {
-        // TODO: get rid of copy
-        Settings s = mSettings;
-        CppCheck fileChecker(s, s.nomsg, s.nofail, errorLogger, false, CppCheckExecutor::executeCommand);
+        Suppressions suppressions;
+        Suppressions suppressionsNoFail;
+        CppCheck fileChecker(mSettings, suppressions, suppressionsNoFail, errorLogger, false, CppCheckExecutor::executeCommand);
 
         unsigned int result;
         if (fs) {
             // file settings..
             result = fileChecker.check(*fs);
-            if (s.clangTidy)
+            if (mSettings.clangTidy)
                 fileChecker.analyseClangTidy(*fs);
         } else {
             // Read file from a file

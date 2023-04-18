@@ -731,7 +731,7 @@ unsigned int CppCheck::checkFile(const std::string& filename, const std::string 
         // Parse comments and then remove them
         preprocessor.inlineSuppressions(tokens1, mSettings.nomsg);
         if (mSettings.dump || !mSettings.addons.empty()) {
-            mSettings.nomsg.dump(dumpProlog);
+            mSuppressions.dump(dumpProlog);
         }
         tokens1.removeComments();
         preprocessor.removeComments();
@@ -746,7 +746,7 @@ unsigned int CppCheck::checkFile(const std::string& filename, const std::string 
             toolinfo << (mSettings.severity.isEnabled(Severity::portability) ? 'p' : ' ');
             toolinfo << (mSettings.severity.isEnabled(Severity::information) ? 'i' : ' ');
             toolinfo << mSettings.userDefines;
-            mSettings.nomsg.dump(toolinfo);
+            mSuppressions.dump(toolinfo);
 
             // Calculate hash so it can be compared with old hash / future hashes
             const std::size_t hash = preprocessor.calculateHash(tokens1, toolinfo.str());
@@ -1014,7 +1014,7 @@ unsigned int CppCheck::checkFile(const std::string& filename, const std::string 
     // In jointSuppressionReport mode, unmatched suppressions are
     // collected after all files are processed
     if (!mSettings.useSingleJob() && (mSettings.severity.isEnabled(Severity::information) || mSettings.checkConfiguration)) {
-        reportUnmatchedSuppressions(mSettings.nomsg.getUnmatchedLocalSuppressions(filename, isUnusedFunctionCheckEnabled()));
+        reportUnmatchedSuppressions(mSuppressions.getUnmatchedLocalSuppressions(filename, isUnusedFunctionCheckEnabled()));
     }
 
     mErrorList.clear();
@@ -1636,8 +1636,10 @@ void CppCheck::getErrorMessages(ErrorLogger &errorlogger)
     s.severity.enable(Severity::portability);
     s.severity.enable(Severity::performance);
     s.severity.enable(Severity::information);
+    Suppressions suppressions;
+    Suppressions suppressionsNoFail;
 
-    CppCheck cppcheck(s, s.nomsg, s.nofail, errorlogger, true, nullptr);
+    CppCheck cppcheck(s, suppressions, suppressionsNoFail, errorlogger, true, nullptr);
     cppcheck.purgedConfigurationMessage(emptyString,emptyString);
     cppcheck.mTooManyConfigs = true;
     cppcheck.tooManyConfigsError(emptyString,0U);

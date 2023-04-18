@@ -73,6 +73,7 @@ public:
 
 private:
     Settings settings0;
+    Suppressions suppressions;
     Preprocessor preprocessor0;
 
     void run() override {
@@ -1974,16 +1975,16 @@ private:
         auto suppressions = inlineSuppr.getSuppressions();
         ASSERT_EQUALS(2, suppressions.size());
 
-        auto suppr = suppressions.front();
-        suppressions.pop_front();
+        auto suppr = supprs.front();
+        supprs.pop_front();
         ASSERT_EQUALS("missingInclude", suppr.errorId);
         ASSERT_EQUALS("test.c", suppr.fileName);
         ASSERT_EQUALS(2, suppr.lineNumber);
         ASSERT_EQUALS(false, suppr.checked);
         ASSERT_EQUALS(false, suppr.matched);
 
-        suppr = suppressions.front();
-        suppressions.pop_front();
+        suppr = supprs.front();
+        supprs.pop_front();
         ASSERT_EQUALS("missingIncludeSystem", suppr.errorId);
         ASSERT_EQUALS("test.c", suppr.fileName);
         ASSERT_EQUALS(4, suppr.lineNumber);
@@ -2563,6 +2564,7 @@ private:
         settings.templateFormat = "simple"; // has no effect
         setTemplateFormat("simple");
         settings.includePaths.emplace_back("system");
+        Suppressions suppressions;
 
         Preprocessor preprocessor(settings, this);
 
@@ -2647,6 +2649,7 @@ private:
         settings.includePaths.emplace_back("system");
         settings.templateFormat = "simple"; // has no effect
         setTemplateFormat("simple");
+        Suppressions suppressions;
 
         Preprocessor preprocessor(settings, this);
 

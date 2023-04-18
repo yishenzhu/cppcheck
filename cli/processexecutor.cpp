@@ -60,8 +60,8 @@
 using std::memset;
 
 
-ProcessExecutor::ProcessExecutor(const std::map<std::string, std::size_t> &files, Settings &settings, Suppressions &suppressions, ErrorLogger &errorLogger)
-    : Executor(files, settings, suppressions, errorLogger)
+ProcessExecutor::ProcessExecutor(const std::map<std::string, std::size_t> &files, Settings &settings, Suppressions &suppressions, Suppressions &suppressionsNoFail, ErrorLogger &errorLogger)
+    : Executor(files, settings, suppressions, suppressionsNoFail, errorLogger)
 {
     assert(mSettings.jobs > 1);
 }
@@ -272,7 +272,7 @@ unsigned int ProcessExecutor::check()
                 close(pipes[0]);
 
                 PipeWriter pipewriter(pipes[1]);
-                CppCheck fileChecker(mSettings, mSettings.nomsg, mSettings.nofail, pipewriter, false, CppCheckExecutor::executeCommand);
+                CppCheck fileChecker(mSettings, mSuppressions, mSuppressionsNoFail, pipewriter, false, CppCheckExecutor::executeCommand);
                 unsigned int resultOfCheck = 0;
 
                 // TODO: markup handling

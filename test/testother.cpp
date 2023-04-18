@@ -306,6 +306,7 @@ private:
         settings->standards.cpp = Standards::CPPLatest;
         settings->certainty.setEnabled(Certainty::inconclusive, inconclusive);
         settings->verbose = verbose;
+        Suppressions suppressions;
 
         Preprocessor preprocessor(*settings);
 
