@@ -272,7 +272,7 @@ unsigned int ProcessExecutor::check()
                 close(pipes[0]);
 
                 PipeWriter pipewriter(pipes[1]);
-                CppCheck fileChecker(mSettings, pipewriter, false, CppCheckExecutor::executeCommand);
+                CppCheck fileChecker(mSettings, mSettings.nomsg, mSettings.nofail, pipewriter, false, CppCheckExecutor::executeCommand);
                 unsigned int resultOfCheck = 0;
 
                 // TODO: markup handling

@@ -120,7 +120,7 @@ public:
     unsigned int check(ErrorLogger &errorLogger, const std::string *file, const ImportProject::FileSettings *fs) const {
         // TODO: get rid of copy
         Settings s = mSettings;
-        CppCheck fileChecker(s, errorLogger, false, CppCheckExecutor::executeCommand);
+        CppCheck fileChecker(s, s.nomsg, s.nofail, errorLogger, false, CppCheckExecutor::executeCommand);
 
         unsigned int result;
         if (fs) {

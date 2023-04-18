@@ -201,7 +201,7 @@ private:
             EXPECT_EQ("", settings.nomsg.addSuppressionLine(suppression));
         }
 
-        CppCheck cppCheck(settings, *this, true, nullptr);
+        CppCheck cppCheck(settings, settings.nomsg, settings.nofail, *this, true, nullptr);
 
         SingleExecutor executor(cppCheck, files, settings, *this);
         std::vector<std::unique_ptr<ScopedFile>> scopedfiles;
@@ -699,7 +699,7 @@ private:
         settings.nomsg.addSuppressionLine("uninitvar");
         settings.exitCode = 1;
 
-        CppCheck cppCheck(settings, *this, false, nullptr); // <- do not "use global suppressions". pretend this is a thread that just checks a file.
+        CppCheck cppCheck(settings, settings.nomsg, settings.nofail, *this, false, nullptr); // <- do not "use global suppressions". pretend this is a thread that just checks a file.
 
         const char code[] = "int f() { int a; return a; }";
         ASSERT_EQUALS(0, cppCheck.check("test.c", code)); // <- no unsuppressed error is seen
@@ -743,7 +743,7 @@ private:
             "    // cppcheck-suppress unusedStructMember\n"
             "    int y;\n"
             "};";
-        CppCheck cppCheck(settings, *this, true, nullptr);
+        CppCheck cppCheck(settings, settings.nomsg, settings.nofail, *this, true, nullptr);
         cppCheck.check("/somewhere/test.cpp", code);
         ASSERT_EQUALS("",errout.str());
     }

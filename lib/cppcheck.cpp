@@ -387,13 +387,15 @@ static std::string getDefinesFlags(const std::string &semicolonSeparatedString)
     return flags;
 }
 
-CppCheck::CppCheck(Settings &settings,
+CppCheck::CppCheck(const Settings &settings,
+                   Suppressions &suppressions,
+                   Suppressions &suppressionsNoFail,
                    ErrorLogger &errorLogger,
                    bool useGlobalSuppressions,
                    std::function<bool(std::string,std::vector<std::string>,std::string,std::string&)> executeCommand)
     : mSettings(settings)
-    , mSuppressions(settings.nomsg)
-    , mSuppressionsNoFail(settings.nofail)
+    , mSuppressions(suppressions)
+    , mSuppressionsNoFail(suppressionsNoFail)
     , mErrorLogger(errorLogger)
     , mExitCode(0)
     , mUseGlobalSuppressions(useGlobalSuppressions)
@@ -618,13 +620,12 @@ unsigned int CppCheck::check(const ImportProject::FileSettings &fs)
     if (fs.platformType != cppcheck::Platform::Type::Unspecified)
         s.platform.set(fs.platformType);
 
-    CppCheck temp(s, mErrorLogger, mUseGlobalSuppressions, mExecuteCommand);
+    CppCheck temp(s, mSuppressions, mSuppressionsNoFail, mErrorLogger, mUseGlobalSuppressions, mExecuteCommand);
     if (mSettings.clang) {
         return temp.check(Path::simplifyPath(fs.filename));
     }
     std::ifstream fin(fs.filename);
     const unsigned int returnValue = temp.checkFile(Path::simplifyPath(fs.filename), fs.cfg, fin);
-    mSuppressions.addSuppressions(temp.mSettings.nomsg.getSuppressions());
     return returnValue;
 }
 
@@ -1636,7 +1637,7 @@ void CppCheck::getErrorMessages(ErrorLogger &errorlogger)
     s.severity.enable(Severity::performance);
     s.severity.enable(Severity::information);
 
-    CppCheck cppcheck(s, errorlogger, true, nullptr);
+    CppCheck cppcheck(s, s.nomsg, s.nofail, errorlogger, true, nullptr);
     cppcheck.purgedConfigurationMessage(emptyString,emptyString);
     cppcheck.mTooManyConfigs = true;
     cppcheck.tooManyConfigsError(emptyString,0U);

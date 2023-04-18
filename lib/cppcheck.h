@@ -54,7 +54,9 @@ public:
     /**
      * @brief Constructor.
      */
-    CppCheck(Settings &settings,
+    CppCheck(const Settings &settings,
+             Suppressions &suppressions,
+             Suppressions &suppressionsNoFail,
              ErrorLogger &errorLogger,
              bool useGlobalSuppressions,
              std::function<bool(std::string,std::vector<std::string>,std::string,std::string&)> executeCommand);

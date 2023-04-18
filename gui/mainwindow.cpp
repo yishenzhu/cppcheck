@@ -620,7 +620,7 @@ void MainWindow::analyzeCode(const QString& code, const QString& filename)
 
     // Create CppCheck instance
     Settings s = getCppcheckSettings();
-    CppCheck cppcheck(s, result, true, nullptr);
+    CppCheck cppcheck(s, s.nomsg, s.nofail, result, true, nullptr);
 
     // Check
     checkLockDownUI();

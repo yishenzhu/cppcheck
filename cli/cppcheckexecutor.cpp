@@ -206,7 +206,7 @@ int CppCheckExecutor::check(int argc, const char* const argv[])
         return EXIT_SUCCESS;
     }
 
-    CppCheck cppCheck(settings, *this, true, executeCommand);
+    CppCheck cppCheck(settings, settings.nomsg, settings.nofail, *this, true, executeCommand);
     mSettings = &settings;
 
     int ret;

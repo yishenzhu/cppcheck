@@ -74,7 +74,7 @@ private:
         if (plistOutput)
             settings.plistOutput = plistOutput;
         // NOLINTNEXTLINE(performance-unnecessary-value-param)
-        CppCheck cppcheck(settings, *this, true, [](std::string,std::vector<std::string>,std::string,std::string&){
+        CppCheck cppcheck(settings, settings.nomsg, settings.nofail, *this, true, [](std::string,std::vector<std::string>,std::string,std::string&){
             return false;
         });
         // TODO: test with settings.project.fileSettings;
