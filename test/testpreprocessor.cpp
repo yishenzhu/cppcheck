@@ -73,7 +73,6 @@ public:
 
 private:
     Settings settings0;
-    Suppressions suppressions;
     Preprocessor preprocessor0;
 
     void run() override {

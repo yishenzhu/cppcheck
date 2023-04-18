@@ -2577,7 +2577,6 @@ private:
         Settings s = settings0;
         s.certainty.setEnabled(Certainty::inconclusive, inconclusive);
         s.severity.enable(Severity::warning);
-        Suppressions suppressions;
 
         Preprocessor preprocessor(settings0);
 
