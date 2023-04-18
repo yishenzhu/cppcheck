@@ -69,7 +69,7 @@ private:
         if (plistOutput)
             settings.plistOutput = plistOutput;
         // TODO: test with settings.project.fileSettings;
-        ThreadExecutor executor(filemap, settings, *this);
+        ThreadExecutor executor(filemap, settings, settings.nomsg, *this);
         std::vector<std::unique_ptr<ScopedFile>> scopedfiles;
         scopedfiles.reserve(filemap.size());
         for (std::map<std::string, std::size_t>::const_iterator i = filemap.cbegin(); i != filemap.cend(); ++i)
