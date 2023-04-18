@@ -73,6 +73,8 @@ private:
         settings.showtime = showtime;
         if (plistOutput)
             settings.plistOutput = plistOutput;
+        else
+            settings.plistOutput = "";
         Suppressions suppressions;
         Suppressions suppressionsNoFail;
         // NOLINTNEXTLINE(performance-unnecessary-value-param)
