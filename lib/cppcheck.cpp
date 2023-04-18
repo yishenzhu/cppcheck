@@ -1599,14 +1599,8 @@ void CppCheck::reportErr(const ErrorMessage &msg)
     // TODO: only convert if necessary
     const Suppressions::ErrorMessage errorMessage = msg.toSuppressionsErrorMessage();
 
-    if (mUseGlobalSuppressions) {
-        if (mSuppressions.isSuppressed(errorMessage)) {
-            return;
-        }
-    } else {
-        if (mSuppressions.isSuppressedLocal(errorMessage)) {
-            return;
-        }
+    if (mSuppressions.isSuppressed(errorMessage, mUseGlobalSuppressions)) {
+        return;
     }
 
     if (!mSuppressionsNoFail.isSuppressed(errorMessage) && !mSuppressions.isSuppressed(errorMessage)) {
