@@ -729,7 +729,7 @@ unsigned int CppCheck::checkFile(const std::string& filename, const std::string 
         }
 
         // Parse comments and then remove them
-        preprocessor.inlineSuppressions(tokens1, mSettings.nomsg);
+        preprocessor.inlineSuppressions(tokens1, mSuppressions);
         if (mSettings.dump || !mSettings.addons.empty()) {
             mSuppressions.dump(dumpProlog);
         }

@@ -1974,16 +1974,16 @@ private:
         auto suppressions = inlineSuppr.getSuppressions();
         ASSERT_EQUALS(2, suppressions.size());
 
-        auto suppr = supprs.front();
-        supprs.pop_front();
+        auto suppr = suppressions.front();
+        suppressions.pop_front();
         ASSERT_EQUALS("missingInclude", suppr.errorId);
         ASSERT_EQUALS("test.c", suppr.fileName);
         ASSERT_EQUALS(2, suppr.lineNumber);
         ASSERT_EQUALS(false, suppr.checked);
         ASSERT_EQUALS(false, suppr.matched);
 
-        suppr = supprs.front();
-        supprs.pop_front();
+        suppr = suppressions.front();
+        suppressions.pop_front();
         ASSERT_EQUALS("missingIncludeSystem", suppr.errorId);
         ASSERT_EQUALS("test.c", suppr.fileName);
         ASSERT_EQUALS(4, suppr.lineNumber);
