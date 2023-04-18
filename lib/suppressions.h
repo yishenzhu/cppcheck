@@ -22,6 +22,7 @@
 
 #include "config.h"
 
+#include <atomic>
 #include <cstddef>
 #include <istream>
 #include <list>
@@ -68,8 +69,8 @@ public:
             symbolName = other.symbolName;
             hash = other.hash;
             thisAndNextLine = other.thisAndNextLine;
-            matched = other.matched;
-            checked = other.checked;
+            matched = other.matched.load();
+            checked = other.checked.load();
             return *this;
         }
 
@@ -122,8 +123,8 @@ public:
         std::string symbolName;
         std::size_t hash;
         bool thisAndNextLine; // Special case for backwards compatibility: { // cppcheck-suppress something
-        bool matched;
-        bool checked; // for inline suppressions, checked or not
+        std::atomic_bool matched;
+        std::atomic_bool checked; // for inline suppressions, checked or not
 
         enum { NO_LINE = -1 };
     };
