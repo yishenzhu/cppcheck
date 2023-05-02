@@ -1172,7 +1172,7 @@ static ValueFlow::Value executeImpl(const Token* expr, ProgramMemory& pm, const 
     } else if (expr->isNumber()) {
         if (MathLib::isFloat(expr->str()))
             return unknown;
-        MathLib::bigint i = MathLib::toLongNumber(expr->str());
+        MathLib::bigint i = MathLib::toLongNumber(expr);
         if (i < 0 && astIsUnsigned(expr))
             return unknown;
         return ValueFlow::Value{i};

@@ -70,15 +70,21 @@ public:
     static const int bigint_bits;
 
     /** @brief for conversion of numeric literals - for atoi-like conversions please use strToInt() */
-    static bigint toLongNumber(const std::string & str);
+    static bigint toLongNumber(const Token * tok, int index = 0);
     /** @brief for conversion of numeric literals - for atoi-like conversions please use strToInt() */
-    static biguint toULongNumber(const std::string & str);
+    static bigint toLongNumber(const std::string & str, const Token *tok = nullptr);
+    /** @brief for conversion of numeric literals - for atoi-like conversions please use strToInt() */
+    static biguint toULongNumber(const Token * tok, int index = 0);
+    /** @brief for conversion of numeric literals - for atoi-like conversions please use strToInt() */
+    static biguint toULongNumber(const std::string & str, const Token *tok = nullptr);
 
     template<class T> static std::string toString(T value) {
         return std::to_string(value);
     }
     /** @brief for conversion of numeric literals */
-    static double toDoubleNumber(const std::string & str);
+    static double toDoubleNumber(const Token * tok, int index = 0);
+    /** @brief for conversion of numeric literals */
+    static double toDoubleNumber(const std::string & str, const Token * tok = nullptr);
 
     static bool isInt(const std::string & str);
     static bool isFloat(const std::string &str);

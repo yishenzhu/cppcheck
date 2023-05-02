@@ -1144,7 +1144,7 @@ static Token * valueFlowSetConstantValue(Token *tok, const Settings *settings, b
 {
     if ((tok->isNumber() && MathLib::isInt(tok->str())) || (tok->tokType() == Token::eChar)) {
         try {
-            MathLib::bigint signedValue = MathLib::toLongNumber(tok->str());
+            MathLib::bigint signedValue = MathLib::toLongNumber(tok);
             const ValueType* vt = tok->valueType();
             if (vt && vt->sign == ValueType::UNSIGNED && signedValue < 0 && ValueFlow::getSizeOf(*vt, settings) < sizeof(MathLib::bigint)) {
                 MathLib::bigint minValue{}, maxValue{};
@@ -1161,7 +1161,7 @@ static Token * valueFlowSetConstantValue(Token *tok, const Settings *settings, b
     } else if (tok->isNumber() && MathLib::isFloat(tok->str())) {
         ValueFlow::Value value;
         value.valueType = ValueFlow::Value::ValueType::FLOAT;
-        value.floatValue = MathLib::toDoubleNumber(tok->str());
+        value.floatValue = MathLib::toDoubleNumber(tok);
         if (!tok->isTemplateArg())
             value.setKnown();
         setTokenValue(tok, std::move(value), settings, isInitList);
@@ -1315,7 +1315,7 @@ static Token * valueFlowSetConstantValue(Token *tok, const Settings *settings, b
                 const Token* num = brac->astOperand2();
                 if (num && ((num->isNumber() && MathLib::isInt(num->str())) || num->tokType() == Token::eChar)) {
                     try {
-                        const MathLib::biguint dim = MathLib::toULongNumber(num->str());
+                        const MathLib::biguint dim = MathLib::toULongNumber(num);
                         sz *= dim;
                         brac = brac->astParent();
                         continue;
@@ -1615,9 +1615,9 @@ static void valueFlowBitAnd(TokenList *tokenlist, const Settings* settings)
 
         MathLib::bigint number;
         if (MathLib::isInt(tok->astOperand1()->str()))
-            number = MathLib::toLongNumber(tok->astOperand1()->str());
+            number = MathLib::toLongNumber(tok->astOperand1());
         else if (MathLib::isInt(tok->astOperand2()->str()))
-            number = MathLib::toLongNumber(tok->astOperand2()->str());
+            number = MathLib::toLongNumber(tok->astOperand2());
         else
             continue;
 
@@ -7389,7 +7389,7 @@ static void valueFlowSwitchVariable(TokenList *tokenlist, SymbolDatabase* symbol
             }
             if (Token::Match(tok, "case %num% :")) {
                 std::list<ValueFlow::Value> values;
-                values.emplace_back(MathLib::toLongNumber(tok->next()->str()));
+                values.emplace_back(MathLib::toLongNumber(tok->next()));
                 values.back().condition = tok;
                 values.back().errorPath.emplace_back(tok, "case " + tok->next()->str() + ": " + vartok->str() + " is " + tok->next()->str() + " here.");
                 bool known = false;
@@ -7400,7 +7400,7 @@ static void valueFlowSwitchVariable(TokenList *tokenlist, SymbolDatabase* symbol
                     tok = tok->tokAt(3);
                     if (!tok->isName())
                         tok = tok->next();
-                    values.emplace_back(MathLib::toLongNumber(tok->next()->str()));
+                    values.emplace_back(MathLib::toLongNumber(tok->next()));
                     values.back().condition = tok;
                     values.back().errorPath.emplace_back(tok, "case " + tok->next()->str() + ": " + vartok->str() + " is " + tok->next()->str() + " here.");
                 }
