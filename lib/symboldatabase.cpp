@@ -2383,6 +2383,11 @@ std::string Variable::getTypeName() const
     return ret;
 }
 
+std::string Variable::getDataTypeString() const
+{
+    return formatTypeName(this->typeStartToken(), this->typeEndToken()->next());
+}
+
 static bool isOperator(const Token *tokenDef)
 {
     if (!tokenDef)

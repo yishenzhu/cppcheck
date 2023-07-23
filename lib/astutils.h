@@ -428,4 +428,6 @@ bool isGlobalData(const Token *expr, bool cpp);
 
 bool isSizeOfEtc(const Token *tok);
 
+std::string formatTypeName(const Token *start, const Token *end);
+
 #endif // astutilsH
