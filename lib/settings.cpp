@@ -66,7 +66,6 @@ Settings::Settings()
     preprocessOnly(false),
     quiet(false),
     relativePaths(false),
-    reportProgress(false),
     showtime(SHOWTIME_MODES::SHOWTIME_NONE),
     templateMaxTime(0),
     typedefMaxTime(0),
