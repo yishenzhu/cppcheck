@@ -270,7 +270,7 @@ public:
      * @param patternAfter pattern that must match the tokens after the ">"
      * @return match => true
      */
-    static bool instantiateMatch(const Token *instance, const std::size_t numberOfArguments, bool variadic, const char patternAfter[]);
+    static bool instantiateMatch(const Token *instance, std::size_t numberOfArguments, bool variadic, const char patternAfter[]);
 
     /**
      * Match template declaration/instantiation
@@ -310,7 +310,7 @@ public:
      * @param codeWithTemplates output parameter that is set if code contains templates
      */
     void simplifyTemplates(
-        const std::time_t maxtime,
+        std::time_t maxtime,
         bool &codeWithTemplates);
 
     /**
@@ -399,7 +399,7 @@ private:
     bool simplifyTemplateInstantiations(
         const TokenAndName &templateDeclaration,
         const std::list<const Token *> &specializations,
-        const std::time_t maxtime,
+        std::time_t maxtime,
         std::set<std::string> &expandedtemplates);
 
     /**

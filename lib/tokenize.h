@@ -194,8 +194,8 @@ public:
      * Simplify variable declarations (split up)
      * \param only_k_r_fpar Only simplify K&R function parameters
      */
-    void simplifyVarDecl(const bool only_k_r_fpar);
-    void simplifyVarDecl(Token * tokBegin, const Token * const tokEnd, const bool only_k_r_fpar); // cppcheck-suppress functionConst // has side effects
+    void simplifyVarDecl( bool only_k_r_fpar);
+    void simplifyVarDecl(Token * tokBegin, const Token * tokEnd, bool only_k_r_fpar); // cppcheck-suppress functionConst // has side effects
 
     /**
      * Simplify variable initialization
@@ -572,16 +572,16 @@ private:
     /**
      * report error message
      */
-    void reportError(const Token* tok, const Severity::SeverityType severity, const std::string& id, const std::string& msg, bool inconclusive = false) const;
+    void reportError(const Token* tok, Severity::SeverityType severity, const std::string& id, const std::string& msg, bool inconclusive = false) const;
     void reportError(const std::list<const Token*>& callstack, Severity::SeverityType severity, const std::string& id, const std::string& msg, bool inconclusive = false) const;
 
     bool duplicateTypedef(Token **tokPtr, const Token *name, const Token *typeDef) const;
 
     void unsupportedTypedef(const Token *tok) const;
 
-    void setVarIdClassDeclaration(Token* const startToken, // cppcheck-suppress functionConst // has side effects
+    void setVarIdClassDeclaration(Token*  startToken, // cppcheck-suppress functionConst // has side effects
                                   VariableMap& variableMap,
-                                  const nonneg int scopeStartVarId,
+                                  nonneg int scopeStartVarId,
                                   std::map<nonneg int, std::map<std::string, nonneg int>>& structMembers);
 
     void setVarIdStructMembers(Token **tok1,
@@ -589,8 +589,8 @@ private:
                                nonneg int &varId) const;
 
     void setVarIdClassFunction(const std::string &classname, // cppcheck-suppress functionConst // has side effects
-                               Token * const startToken,
-                               const Token * const endToken,
+                               Token * startToken,
+                               const Token * endToken,
                                const std::map<std::string, nonneg int> &varlist,
                                std::map<nonneg int, std::map<std::string, nonneg int>>& structMembers,
                                nonneg int &varId_);

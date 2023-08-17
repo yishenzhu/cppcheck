@@ -108,11 +108,11 @@ const Token* findParent(const Token* tok, const TFunc& pred)
     return parent;
 }
 
-const Token* findExpression(const nonneg int exprid,
+const Token* findExpression(nonneg int exprid,
                             const Token* start,
                             const Token* end,
                             const std::function<bool(const Token*)>& pred);
-const Token* findExpression(const Token* start, const nonneg int exprid);
+const Token* findExpression(const Token* start, nonneg int exprid);
 
 std::vector<const Token*> astFlatten(const Token* tok, const char* op);
 std::vector<Token*> astFlatten(Token* tok, const char* op);
@@ -245,7 +245,7 @@ const Token* followReferences(const Token* tok, ErrorPath* errors = nullptr);
 
 CPPCHECKLIB bool isSameExpression(bool cpp, bool macro, const Token *tok1, const Token *tok2, const Library& library, bool pure, bool followVar, ErrorPath* errors=nullptr);
 
-bool isEqualKnownValue(const Token * const tok1, const Token * const tok2);
+bool isEqualKnownValue(const Token * tok1, const Token * tok2);
 
 bool isStructuredBindingVariable(const Variable* var);
 
@@ -254,7 +254,7 @@ const Token* isInLoopCondition(const Token* tok);
 /**
  * Is token used a boolean, that is to say cast to a bool, or used as a condition in a if/while/for
  */
-CPPCHECKLIB bool isUsedAsBool(const Token * const tok);
+CPPCHECKLIB bool isUsedAsBool(const Token * tok);
 
 /**
  * Are two conditions opposite
@@ -265,9 +265,9 @@ CPPCHECKLIB bool isUsedAsBool(const Token * const tok);
  * @param library files data
  * @param pure boolean
  */
-bool isOppositeCond(bool isNot, bool cpp, const Token * const cond1, const Token * const cond2, const Library& library, bool pure, bool followVar, ErrorPath* errors=nullptr);
+bool isOppositeCond(bool isNot, bool cpp, const Token * cond1, const Token * cond2, const Library& library, bool pure, bool followVar, ErrorPath* errors=nullptr);
 
-bool isOppositeExpression(bool cpp, const Token * const tok1, const Token * const tok2, const Library& library, bool pure, bool followVar, ErrorPath* errors=nullptr);
+bool isOppositeExpression(bool cpp, const Token * tok1, const Token * tok2, const Library& library, bool pure, bool followVar, ErrorPath* errors=nullptr);
 
 bool isConstFunctionCall(const Token* ftok, const Library& library);
 
@@ -280,7 +280,7 @@ bool isUniqueExpression(const Token* tok);
 bool isEscapeFunction(const Token* ftok, const Library* library);
 
 /** Is scope a return scope (scope will unconditionally return) */
-CPPCHECKLIB bool isReturnScope(const Token* const endToken,
+CPPCHECKLIB bool isReturnScope(const Token* endToken,
                                const Library* library = nullptr,
                                const Token** unknownFunc = nullptr,
                                bool functionScope = false);
@@ -318,8 +318,8 @@ bool isVariableChangedByFunctionCall(const Token *tok, int indirect, nonneg int 
 CPPCHECKLIB bool isVariableChangedByFunctionCall(const Token *tok, int indirect, const Settings *settings, bool *inconclusive);
 
 /** Is variable changed in block of code? */
-CPPCHECKLIB bool isVariableChanged(const Token *start, const Token *end, const nonneg int exprid, bool globalvar, const Settings *settings, bool cpp, int depth = 20);
-bool isVariableChanged(const Token *start, const Token *end, int indirect, const nonneg int exprid, bool globalvar, const Settings *settings, bool cpp, int depth = 20);
+CPPCHECKLIB bool isVariableChanged(const Token *start, const Token *end, nonneg int exprid, bool globalvar, const Settings *settings, bool cpp, int depth = 20);
+bool isVariableChanged(const Token *start, const Token *end, int indirect, nonneg int exprid, bool globalvar, const Settings *settings, bool cpp, int depth = 20);
 
 bool isVariableChanged(const Token *tok, int indirect, const Settings *settings, bool cpp, int depth = 20);
 
@@ -335,8 +335,8 @@ bool isVariablesChanged(const Token* start,
 bool isThisChanged(const Token* tok, int indirect, const Settings* settings, bool cpp);
 bool isThisChanged(const Token* start, const Token* end, int indirect, const Settings* settings, bool cpp);
 
-const Token* findVariableChanged(const Token *start, const Token *end, int indirect, const nonneg int exprid, bool globalvar, const Settings *settings, bool cpp, int depth = 20);
-Token* findVariableChanged(Token *start, const Token *end, int indirect, const nonneg int exprid, bool globalvar, const Settings *settings, bool cpp, int depth = 20);
+const Token* findVariableChanged(const Token *start, const Token *end, int indirect, nonneg int exprid, bool globalvar, const Settings *settings, bool cpp, int depth = 20);
+Token* findVariableChanged(Token *start, const Token *end, int indirect, nonneg int exprid, bool globalvar, const Settings *settings, bool cpp, int depth = 20);
 
 CPPCHECKLIB bool isExpressionChanged(const Token* expr,
                                      const Token* start,

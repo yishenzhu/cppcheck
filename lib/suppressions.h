@@ -182,13 +182,13 @@ public:
      * @brief Returns list of unmatched local (per-file) suppressions.
      * @return list of unmatched suppressions
      */
-    std::list<Suppression> getUnmatchedLocalSuppressions(const std::string &file, const bool unusedFunctionChecking) const;
+    std::list<Suppression> getUnmatchedLocalSuppressions(const std::string &file, bool unusedFunctionChecking) const;
 
     /**
      * @brief Returns list of unmatched global (glob pattern) suppressions.
      * @return list of unmatched suppressions
      */
-    std::list<Suppression> getUnmatchedGlobalSuppressions(const bool unusedFunctionChecking) const;
+    std::list<Suppression> getUnmatchedGlobalSuppressions(bool unusedFunctionChecking) const;
 
     /**
      * @brief Returns list of all suppressions.

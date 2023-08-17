@@ -366,7 +366,7 @@ public:
         return arg && arg->strz;
     }
 
-    bool isIntArgValid(const Token *ftok, int argnr, const MathLib::bigint argvalue) const;
+    bool isIntArgValid(const Token *ftok, int argnr, MathLib::bigint argvalue) const;
     bool isFloatArgValid(const Token *ftok, int argnr, double argvalue) const;
 
     const std::string& validarg(const Token *ftok, int argnr) const {
@@ -511,7 +511,7 @@ public:
      */
     std::string getFunctionName(const Token *ftok) const;
 
-    static bool isContainerYield(const Token * const cond, Library::Container::Yield y, const std::string& fallback=emptyString);
+    static bool isContainerYield(const Token * cond, Library::Container::Yield y, const std::string& fallback=emptyString);
 
     /** Suppress/check a type */
     enum class TypeCheck { def,
@@ -524,7 +524,7 @@ public:
 
 private:
     // load a <function> xml node
-    Error loadFunction(const tinyxml2::XMLElement * const node, const std::string &name, std::set<std::string> &unknown_elements);
+    Error loadFunction(const tinyxml2::XMLElement * node, const std::string &name, std::set<std::string> &unknown_elements);
 
     class ExportedFunctions {
     public:
