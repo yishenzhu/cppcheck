@@ -23,6 +23,7 @@
 
 #include "config.h"
 #include "errortypes.h"
+#include "safeptr.h"
 
 #include <list>
 #include <string>
@@ -132,7 +133,7 @@ public:
 protected:
     const Tokenizer* const mTokenizer{};
     const Settings* const mSettings{};
-    ErrorLogger* const mErrorLogger{};
+    safe_ptr<ErrorLogger> mErrorLogger;
 
     /** report an error */
     void reportError(const Token *tok, const Severity::SeverityType severity, const std::string &id, const std::string &msg) {

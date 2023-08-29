@@ -265,7 +265,7 @@ bool CheckMemoryLeak::isOpenDevNull(const Token *tok) const
 
 //--------------------------------------------------------------------------
 
-void CheckMemoryLeak::memoryLeak(const Token *tok, const std::string &varname, AllocType alloctype) const
+void CheckMemoryLeak::memoryLeak(const Token *tok, const std::string &varname, AllocType alloctype)
 {
     if (alloctype == CheckMemoryLeak::File ||
         alloctype == CheckMemoryLeak::Pipe ||
@@ -277,7 +277,7 @@ void CheckMemoryLeak::memoryLeak(const Token *tok, const std::string &varname, A
 }
 //---------------------------------------------------------------------------
 
-void CheckMemoryLeak::reportErr(const Token *tok, Severity::SeverityType severity, const std::string &id, const std::string &msg, const CWE &cwe) const
+void CheckMemoryLeak::reportErr(const Token *tok, Severity::SeverityType severity, const std::string &id, const std::string &msg, const CWE &cwe)
 {
     std::list<const Token *> callstack;
 
@@ -287,7 +287,7 @@ void CheckMemoryLeak::reportErr(const Token *tok, Severity::SeverityType severit
     reportErr(callstack, severity, id, msg, cwe);
 }
 
-void CheckMemoryLeak::reportErr(const std::list<const Token *> &callstack, Severity::SeverityType severity, const std::string &id, const std::string &msg, const CWE &cwe) const
+void CheckMemoryLeak::reportErr(const std::list<const Token *> &callstack, Severity::SeverityType severity, const std::string &id, const std::string &msg, const CWE &cwe)
 {
     const ErrorMessage errmsg(callstack, mTokenizer_ ? &mTokenizer_->list : nullptr, severity, id, msg, cwe, Certainty::normal);
     if (mErrorLogger_)
@@ -296,17 +296,17 @@ void CheckMemoryLeak::reportErr(const std::list<const Token *> &callstack, Sever
         Check::writeToErrorList(errmsg);
 }
 
-void CheckMemoryLeak::memleakError(const Token *tok, const std::string &varname) const
+void CheckMemoryLeak::memleakError(const Token *tok, const std::string &varname)
 {
     reportErr(tok, Severity::error, "memleak", "$symbol:" + varname + "\nMemory leak: $symbol", CWE(401U));
 }
 
-void CheckMemoryLeak::memleakUponReallocFailureError(const Token *tok, const std::string &reallocfunction, const std::string &varname) const
+void CheckMemoryLeak::memleakUponReallocFailureError(const Token *tok, const std::string &reallocfunction, const std::string &varname)
 {
     reportErr(tok, Severity::error, "memleakOnRealloc", "$symbol:" + varname + "\nCommon " + reallocfunction + " mistake: \'$symbol\' nulled but not freed upon failure", CWE(401U));
 }
 
-void CheckMemoryLeak::resourceLeakError(const Token *tok, const std::string &varname) const
+void CheckMemoryLeak::resourceLeakError(const Token *tok, const std::string &varname)
 {
     std::string errmsg("Resource leak");
     if (!varname.empty())
@@ -314,12 +314,12 @@ void CheckMemoryLeak::resourceLeakError(const Token *tok, const std::string &var
     reportErr(tok, Severity::error, "resourceLeak", errmsg, CWE(775U));
 }
 
-void CheckMemoryLeak::deallocuseError(const Token *tok, const std::string &varname) const
+void CheckMemoryLeak::deallocuseError(const Token *tok, const std::string &varname)
 {
     reportErr(tok, Severity::error, "deallocuse", "$symbol:" + varname + "\nDereferencing '$symbol' after it is deallocated / released", CWE(416U));
 }
 
-void CheckMemoryLeak::mismatchAllocDealloc(const std::list<const Token *> &callstack, const std::string &varname) const
+void CheckMemoryLeak::mismatchAllocDealloc(const std::list<const Token *> &callstack, const std::string &varname)
 {
     reportErr(callstack, Severity::error, "mismatchAllocDealloc", "$symbol:" + varname + "\nMismatching allocation and deallocation: $symbol", CWE(762U));
 }

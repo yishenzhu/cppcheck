@@ -22,6 +22,7 @@
 //---------------------------------------------------------------------------
 
 #include "config.h"
+#include "safeptr.h"
 
 #include <cstddef>
 #include <istream>
@@ -184,7 +185,7 @@ private:
     static bool hasErrors(const simplecpp::OutputList &outputList);
 
     const Settings& mSettings;
-    ErrorLogger *mErrorLogger;
+    safe_ptr<ErrorLogger> mErrorLogger;
 
     /** list of all directives met while preprocessing file */
     std::list<Directive> mDirectives;
