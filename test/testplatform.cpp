@@ -34,6 +34,7 @@ private:
         TEST_CASE(valid_config_win32w);
         TEST_CASE(valid_config_unix32);
         TEST_CASE(valid_config_win64);
+        // TODO: test native and unspecified
         TEST_CASE(valid_config_file_1);
         TEST_CASE(valid_config_file_2);
         TEST_CASE(valid_config_file_3);
@@ -186,6 +187,7 @@ private:
         // Similar to the avr8 platform file.
         const char xmldata[] = "<?xml version=\"1.0\"?>\n"
                                "<platform>\n"
+                               "  <windows>false</windows>\n"
                                "  <char_bit>8</char_bit>\n"
                                "  <default-sign>unsigned</default-sign>\n"
                                "  <sizeof>\n"
@@ -230,6 +232,7 @@ private:
         // char_bit > 8.
         const char xmldata[] = "<?xml version=\"1.0\"?>\n"
                                "<platform>\n"
+                               "  <windows>true</windows>\n"
                                "  <char_bit>20</char_bit>\n"
                                "  <default-sign>signed</default-sign>\n"
                                "  <sizeof>\n"
@@ -269,11 +272,12 @@ private:
         ASSERT_EQUALS(100, platform.long_long_bit);
     }
 
-    void valid_config_file_3() const {
+    void invalid_config_file_3() const {
         // Valid platform configuration without any usable information.
         // Similar like an empty file.
         const char xmldata[] = "<?xml version=\"1.0\"?>\n"
                                "<platform>\n"
+                               "  <windows1>true</windows1>\n"
                                "  <char_bit1>8</char_bit1>\n"
                                "  <default-sign1>unsigned</default-sign1>\n"
                                "  <sizeof1>\n"
@@ -300,6 +304,7 @@ private:
         // set to 0.
         const char xmldata[] = "<?xml version=\"1.0\"?>\n"
                                "<platform>\n"
+                               "  <windows>true</windows>\n"
                                "  <char_bit>0</char_bit>\n"
                                "  <default-sign>z</default-sign>\n"
                                "  <sizeof>\n"
@@ -343,6 +348,7 @@ private:
         // Invalid XML file: mismatching elements "boolt" vs "bool".
         const char xmldata[] = "<?xml version=\"1.0\"?>\n"
                                "<platform>\n"
+                               "  <windows>false</windows>\n"
                                "  <char_bit>8</char_bit>\n"
                                "  <default-sign>unsigned</default-sign>\n"
                                "  <sizeof>\n"
@@ -368,6 +374,7 @@ private:
         // Similar like an empty file.
         const char xmldata[] = "<?xml version=\"1.0\"?>\n"
                                "<platform>\n"
+                               "  <windows></windows>\n"
                                "  <char_bit></char_bit>\n"
                                "  <default-sign></default-sign>\n"
                                "  <sizeof>\n"
@@ -385,7 +392,10 @@ private:
                                "  </sizeof>\n"
                                " </platform>";
         cppcheck::Platform platform;
+        ASSERT(platform.platform(cppcheck::Platform::Win64));
         ASSERT(!readPlatform(platform, xmldata));
+        ASSERT_EQUALS(platform.PlatformFile, platform.platformType);
+        ASSERT(!platform.isWindowsPlatform());
     }
 
     void default_platform() const {
