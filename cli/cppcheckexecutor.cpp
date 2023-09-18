@@ -465,8 +465,10 @@ void CppCheckExecutor::reportErr(const ErrorMessage &msg)
         return;
     }
 
+    const std::string msgStr = msg.toString(mSettings->verbose, mSettings->templateFormat, mSettings->templateLocation);
+
     // Alert only about unique errors
-    if (!mShownErrors.insert(msg.toString(mSettings->verbose)).second)
+    if (!mShownErrors.insert(msgStr).second)
         return;
 
     if (ErrorLogger::isCriticalErrorId(msg.id) && mCriticalErrors.find(msg.id) == std::string::npos) {
@@ -478,7 +480,7 @@ void CppCheckExecutor::reportErr(const ErrorMessage &msg)
     if (mSettings->xml)
         reportErr(msg.toXML());
     else
-        reportErr(msg.toString(mSettings->verbose, mSettings->templateFormat, mSettings->templateLocation));
+        reportErr(msgStr);
 }
 
 void CppCheckExecutor::setExceptionOutput(FILE* exceptionOutput)
