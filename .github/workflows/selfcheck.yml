@@ -75,7 +75,7 @@ jobs:
       - name: Self check (unusedFunction)
         if: false # TODO: fails with preprocessorErrorDirective - see #10667
         run: |
-          ./cppcheck -q --template=selfcheck --error-exitcode=1 --library=cppcheck-lib --library=qt -D__CPPCHECK__ -D__GNUC__ -DQT_VERSION=0x060000 -DQ_MOC_OUTPUT_REVISION=68 -DQT_CHARTS_LIB --enable=unusedFunction --exception-handling -rp=. --project=cmake.output/compile_commands.json --suppressions-list=.selfcheck_unused_suppressions --inline-suppr
+          ./cppcheck -q --template=selfcheck --error-exitcode=1 --library=cppcheck-lib --library=qt -D__CPPCHECK__ -D__GNUC__=10 -D__GNUC_MINOR__=2 -D__GNUC_PATCHLEVEL__=1 -D__linux__ -D__gnu_linux__ -D__x86_64__ -D__STDC__ -DQT_VERSION=0x060000 -DQ_MOC_OUTPUT_REVISION=68 -DQT_CHARTS_LIB --enable=unusedFunction --exception-handling -rp=. --project=cmake.output/compile_commands.json --suppressions-list=.selfcheck_unused_suppressions --inline-suppr
         env:
           DISABLE_VALUEFLOW: 1
           UNUSEDFUNCTION_ONLY: 1
@@ -96,7 +96,7 @@ jobs:
       # TODO: find a way to report unmatched suppressions without need to add information checks
       - name: Self check (unusedFunction / no test)
         run: |
-          ./cppcheck -q --template=selfcheck --error-exitcode=1 --library=cppcheck-lib --library=qt -D__CPPCHECK__ -D__GNUC__ -DQT_VERSION=0x060000 -DQ_MOC_OUTPUT_REVISION=68 -DQT_CHARTS_LIB --enable=unusedFunction --exception-handling -rp=. --project=cmake.output.notest/compile_commands.json --suppressions-list=.selfcheck_unused_suppressions --inline-suppr
+          ./cppcheck -q --template=selfcheck --error-exitcode=1 --library=cppcheck-lib --library=qt -D__CPPCHECK__ -D__GNUC__=10 -D__GNUC_MINOR__=2 -D__GNUC_PATCHLEVEL__=1 -D__linux__ -D__gnu_linux__ -D__x86_64__ -D__STDC__ -DQT_VERSION=0x060000 -DQ_MOC_OUTPUT_REVISION=68 -DQT_CHARTS_LIB --enable=unusedFunction --exception-handling -rp=. --project=cmake.output.notest/compile_commands.json --suppressions-list=.selfcheck_unused_suppressions --inline-suppr
         env:
           DISABLE_VALUEFLOW: 1
           UNUSEDFUNCTION_ONLY: 1
