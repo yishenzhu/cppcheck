@@ -61,7 +61,7 @@ def test_addon_local_path():
     ret, stdout, stderr = cppcheck_local(['--addon=misra', '--enable=style', '--template=cppcheck1', '.'])
     assert ret == 0, stdout
     assert stderr == ('[main.c:5]: (error) Division by zero.\n'
-                      '[main.c:1]: (style) misra violation (use --rule-texts=<file> to get proper output)\n')
+                      '[main.c:1]: (style) misra violation (use --rule-texts=<file> to get proper output) (Undefined)\n')
 
 def test_addon_local_path_not_enable():
     ret, stdout, stderr = cppcheck_local(['--addon=misra', '--template=cppcheck1', '.'])
@@ -74,7 +74,7 @@ def test_addon_absolute_path():
     filename = os.path.join(prjpath, 'main.c')
     assert ret == 0, stdout
     assert stderr == ('[%s:5]: (error) Division by zero.\n'
-                      '[%s:1]: (style) misra violation (use --rule-texts=<file> to get proper output)\n' % (filename, filename))
+                      '[%s:1]: (style) misra violation (use --rule-texts=<file> to get proper output) (Undefined)\n' % (filename, filename))
 
 def test_addon_relative_path():
     prjpath = getRelativeProjectPath()
@@ -84,7 +84,7 @@ def test_addon_relative_path():
     assert stdout == ('Checking %s ...\n'
                       'Checking %s: SOME_CONFIG...\n' % (filename, filename))
     assert stderr == ('[%s:5]: (error) Division by zero.\n'
-                      '[%s:1]: (style) misra violation (use --rule-texts=<file> to get proper output)\n' % (filename, filename))
+                      '[%s:1]: (style) misra violation (use --rule-texts=<file> to get proper output) (Undefined)\n' % (filename, filename))
 
 def test_addon_with_gui_project():
     project_file = 'helloworld/test.cppcheck'
@@ -94,7 +94,7 @@ def test_addon_with_gui_project():
     assert ret == 0, stdout
     assert stdout == 'Checking %s ...\n' % filename
     assert stderr == ('[%s:5]: (error) Division by zero.\n'
-                      '[%s:1]: (style) misra violation (use --rule-texts=<file> to get proper output)\n' % (filename, filename))
+                      '[%s:1]: (style) misra violation (use --rule-texts=<file> to get proper output) (Undefined)\n' % (filename, filename))
 
 def test_basepath_relative_path():
     prjpath = getRelativeProjectPath()

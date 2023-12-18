@@ -1629,6 +1629,8 @@ def reportError(location, severity, message, addon, errorId, extra=''):
                 'addon': addon,
                 'errorId': errorId,
                 'extra': extra}
+        if len(extra) > 0:
+            msg["message"] += ' (' + extra + ')'
         sys.stdout.write(json.dumps(msg) + '\n')
     else:
         if is_suppressed(location, message, '%s-%s' % (addon, errorId)):
