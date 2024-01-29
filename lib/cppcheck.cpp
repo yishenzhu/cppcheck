@@ -59,7 +59,6 @@
 #include <unordered_set>
 #include <utility>
 #include <vector>
-#include <filesystem>
 
 #ifndef _WIN32
 #include <unistd.h>
