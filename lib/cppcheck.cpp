@@ -544,6 +544,13 @@ unsigned int CppCheck::checkClang(const std::string &path)
 
 unsigned int CppCheck::check(const std::string &path)
 {
+    if (!Path::isFile(path)) {
+        std::string fixedpath = Path::simplifyPath(path);
+        fixedpath = Path::toNativeSeparators(fixedpath);
+        std::string errorMsg(std::string("File ") + fixedpath + ' ' +  std::string("does not exists. Skipping..."));
+        fileNotFoundError(Path::simplifyPath(path), errorMsg);
+        return 0;
+    }
     if (mSettings.clang)
         return checkClang(path);
 
@@ -558,6 +565,13 @@ unsigned int CppCheck::check(const std::string &path, const std::string &content
 
 unsigned int CppCheck::check(const FileSettings &fs)
 {
+    if (!Path::isFile(fs.filename)) {
+        std::string fixedpath = Path::simplifyPath(fs.filename);
+        fixedpath = Path::toNativeSeparators(fixedpath);
+        std::string errorMsg(std::string("File ") + fixedpath + ' ' +  std::string("does not exists. Skipping..."));
+        fileNotFoundError(fs.filename, errorMsg);
+        return 0;
+    }
     CppCheck temp(mErrorLogger, mUseGlobalSuppressions, mExecuteCommand);
     temp.mSettings = mSettings;
     if (!temp.mSettings.userDefines.empty())
@@ -594,14 +608,6 @@ static simplecpp::TokenList createTokenList(const std::string& filename, std::ve
 unsigned int CppCheck::checkFile(const std::string& filename, const std::string &cfgname, std::istream* fileStream)
 {
     mExitCode = 0;
-
-    if (!Path::isFile(filename)) {
-        std::string fixedpath = Path::simplifyPath(filename);
-        fixedpath = Path::toNativeSeparators(fixedpath);
-        std::string errorMsg(std::string("File ") + fixedpath + ' ' +  std::string("does not exists. Skipping..."));
-        fileNotFoundError(filename, errorMsg);
-        return mExitCode;
-    }
 
     FilesDeleter filesDeleter;
 
@@ -1043,15 +1049,13 @@ unsigned int CppCheck::checkFile(const std::string& filename, const std::string 
 
 static ErrorMessage makeError(const std::string &filename, const std::string &msg, const std::string &id)
 {
-    const std::string fullmsg("Bailing out from analysis: " + msg);
-
     const ErrorMessage::FileLocation loc1(filename, 0, 0);
     std::list<ErrorMessage::FileLocation> callstack(1, loc1);
 
     return ErrorMessage(callstack,
                         emptyString,
                         Severity::error,
-                        fullmsg,
+                        msg,
                         id,
                         Certainty::normal);
 }
