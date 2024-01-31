@@ -637,3 +637,9 @@ def test_json_file_ignore_2(tmpdir):
     ]
 
     assert_cppcheck(args, ec_exp=1, err_exp=[], out_exp=out_lines)
+
+
+def test_project_missing_files():
+    ret, _, stderr = cppcheck(['--template=cppcheck1', '--project=' + os.path.join('invalid-project', 'invalid-project.vcxproj')])
+    assert ret == 0
+    assert stderr == '[invalid-project/main.c:0]: (error) File invalid-project/main.c does not exists. Skipping file.\n'
