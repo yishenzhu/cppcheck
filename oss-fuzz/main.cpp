@@ -51,10 +51,8 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t dataSize);
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t dataSize)
 {
-    if (dataSize < 10000) {
-        const std::string code = generateCode2(data, dataSize);
-        doCheck(code);
-    }
+    const std::string code = std::string(reinterpret_cast<const char*>(data), dataSize);
+    doCheck(code);
     return 0;
 }
 #else
