@@ -224,7 +224,9 @@ private:
         TEST_CASE(stdunknown2);
         TEST_CASE(platformWin64);
         TEST_CASE(platformWin32A);
+        TEST_CASE(platformWin32a);
         TEST_CASE(platformWin32W);
+        TEST_CASE(platformWin32w);
         TEST_CASE(platformUnix32);
         TEST_CASE(platformUnix32Unsigned);
         TEST_CASE(platformUnix64);
@@ -1325,11 +1327,29 @@ private:
         ASSERT(settings->platform.set(Platform::Type::Unspecified));
         ASSERT_EQUALS_ENUM(CmdLineParser::Result::Success, parser->parseFromArgs(3, argv));
         ASSERT_EQUALS(Platform::Type::Win32A, settings->platform.type);
+        ASSERT_EQUALS("Platform 'win32A' is deprecated and will be removed in a future version. Please use 'win32a' instead.\n", GET_REDIRECT_OUTPUT);
+    }
+
+    void platformWin32a() {
+        REDIRECT;
+        const char * const argv[] = {"cppcheck", "--platform=win32a", "file.cpp"};
+        ASSERT(settings->platform.set(Platform::Type::Unspecified));
+        ASSERT_EQUALS_ENUM(CmdLineParser::Result::Success, parser->parseFromArgs(3, argv));
+        ASSERT_EQUALS(Platform::Type::Win32A, settings->platform.type);
     }
 
     void platformWin32W() {
         REDIRECT;
         const char * const argv[] = {"cppcheck", "--platform=win32W", "file.cpp"};
+        ASSERT(settings->platform.set(Platform::Type::Unspecified));
+        ASSERT_EQUALS_ENUM(CmdLineParser::Result::Success, parser->parseFromArgs(3, argv));
+        ASSERT_EQUALS(Platform::Type::Win32W, settings->platform.type);
+        ASSERT_EQUALS("Platform 'win32W' is deprecated and will be removed in a future version. Please use 'win32w' instead.\n", GET_REDIRECT_OUTPUT);
+    }
+
+    void platformWin32w() {
+        REDIRECT;
+        const char * const argv[] = {"cppcheck", "--platform=win32w", "file.cpp"};
         ASSERT(settings->platform.set(Platform::Type::Unspecified));
         ASSERT_EQUALS_ENUM(CmdLineParser::Result::Success, parser->parseFromArgs(3, argv));
         ASSERT_EQUALS(Platform::Type::Win32W, settings->platform.type);

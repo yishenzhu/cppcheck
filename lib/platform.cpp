@@ -152,9 +152,17 @@ bool Platform::set(Type t)
 
 bool Platform::set(const std::string& platformstr, std::string& errstr, const std::vector<std::string>& paths, bool verbose)
 {
-    if (platformstr == "win32A")
+    if (platformstr == "win32A") {
+        std::cout << "Platform 'win32A' is deprecated and will be removed in a future version. Please use 'win32a' instead." << std::endl;
         set(Type::Win32A);
-    else if (platformstr == "win32W")
+    }
+    else if (platformstr == "win32a")
+        set(Type::Win32A);
+    else if (platformstr == "win32W") {
+        std::cout << "Platform 'win32W' is deprecated and will be removed in a future version. Please use 'win32w' instead." << std::endl;
+        set(Type::Win32W);
+    }
+    else if (platformstr == "win32w")
         set(Type::Win32W);
     else if (platformstr == "win64")
         set(Type::Win64);
