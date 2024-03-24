@@ -442,13 +442,13 @@ void StdLogger::reportErr(const ErrorMessage &msg)
     // TODO: we generate a different message here then we log below
     // TODO: there should be no need for verbose and default messages here
     // Alert only about unique errors
-    if (!mShownErrors.insert(msg.toString(mSettings.verbose)).second)
+    if (!mShownErrors.insert(msg.toString(mSettings.verbose, mSettings.relativePaths, mSettings.basePaths)).second)
         return;
 
     if (mSettings.xml)
         reportErr(msg.toXML());
     else
-        reportErr(msg.toString(mSettings.verbose, mSettings.templateFormat, mSettings.templateLocation));
+        reportErr(msg.toString(mSettings.verbose, mSettings.relativePaths, mSettings.basePaths, mSettings.templateFormat, mSettings.templateLocation));
 }
 
 #if defined(USE_WINDOWS_SEH) || defined(USE_UNIX_SIGNAL_HANDLING)
