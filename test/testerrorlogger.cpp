@@ -21,6 +21,7 @@
 #include "errorlogger.h"
 #include "errortypes.h"
 #include "fixture.h"
+#include "helpers.h"
 
 #include <list>
 #include <string>
@@ -40,12 +41,13 @@ private:
     void run() override {
         TEST_CASE(PatternSearchReplace);
         TEST_CASE(FileLocationConstruct);
-        TEST_CASE(FileLocationSetFile);
+        TEST_CASE(FileLocationConstructNormalize);
         TEST_CASE(ErrorMessageConstruct);
         TEST_CASE(ErrorMessageConstructLocations);
         TEST_CASE(ErrorMessageVerbose);
         TEST_CASE(ErrorMessageVerboseLocations);
         TEST_CASE(ErrorMessageFromInternalError);
+        TEST_CASE(ErrorMessageCode);
         TEST_CASE(CustomFormat);
         TEST_CASE(CustomFormat2);
         TEST_CASE(CustomFormatLocations);
@@ -104,17 +106,14 @@ private:
 
     void FileLocationConstruct() const {
         const ErrorMessage::FileLocation loc("foo.cpp", 1, 2);
-        ASSERT_EQUALS("foo.cpp", loc.getOrigFile());
         ASSERT_EQUALS("foo.cpp", loc.getfile());
         ASSERT_EQUALS(1, loc.line);
         ASSERT_EQUALS(2, loc.column);
     }
 
-    void FileLocationSetFile() const {
-        ErrorMessage::FileLocation loc("foo1.cpp", 0, 0);
-        loc.setfile("foo.cpp");
-        ASSERT_EQUALS("foo1.cpp", loc.getOrigFile());
-        ASSERT_EQUALS("foo.cpp", loc.getfile());
+    void FileLocationConstructNormalize() const {
+        const ErrorMessage::FileLocation loc(".\\test\\test1\\..\\foo.cpp", 0, 0);
+        TODO_ASSERT_EQUALS("test/foo.cpp", "./test/test1/../foo.cpp", loc.getfile());
         ASSERT_EQUALS(0, loc.line);
         ASSERT_EQUALS(0, loc.column);
     }
@@ -187,6 +186,25 @@ private:
             ASSERT_EQUALS("[file.cpp:0]: (error) msg: message", msg.toString(false));
             ASSERT_EQUALS("[file.cpp:0]: (error) msg: message: details", msg.toString(true));
         }
+    }
+
+    void ErrorMessageCode() const {
+        ScopedFile file("code.cpp",
+                        "int i;\n"
+                        "int i2;\n"
+                        "int i3;\n"
+                        );
+
+        ErrorMessage::FileLocation codeCpp3_5{"code.cpp", 3, 5};
+        std::list<ErrorMessage::FileLocation> locs = { codeCpp3_5 };
+        ErrorMessage msg(std::move(locs), emptyString, Severity::error, "Programming error.\nVerbose error", "errorId", Certainty::normal);
+        ASSERT_EQUALS(1, msg.callStack.size());
+        ASSERT_EQUALS("Programming error.", msg.shortMessage());
+        ASSERT_EQUALS("Verbose error", msg.verboseMessage());
+        ASSERT_EQUALS("code.cpp:3:5: error: Programming error. [errorId]\n"
+                      "int i3;\n"
+                      "    ^",
+                      msg.toString(false, "{file}:{line}:{column}: {severity}:{inconclusive:inconclusive:} {message} [{id}]\n{code}"));
     }
 
     void CustomFormat() const {
@@ -431,8 +449,7 @@ private:
     }
 
     void SerializeFileLocation() const {
-        ErrorMessage::FileLocation loc1(":/,;", "abcd:/,", 654, 33);
-        loc1.setfile("[]:;,()");
+        ErrorMessage::FileLocation loc1("[]:;,()", "abcd:/,", 654, 33);
 
         ErrorMessage msg({std::move(loc1)}, emptyString, Severity::error, "Programming error", "errorId", Certainty::inconclusive);
 
@@ -446,12 +463,11 @@ private:
                       "17 Programming error"
                       "17 Programming error"
                       "1 "
-                      "27 654\t33\t[]:;,()\t:/,;\tabcd:/,", msg_str);
+                      "22 654\t33\t[]:;,()\tabcd:/,", msg_str);
 
         ErrorMessage msg2;
         ASSERT_NO_THROW(msg2.deserialize(msg_str));
         ASSERT_EQUALS("[]:;,()", msg2.callStack.front().getfile(false));
-        ASSERT_EQUALS(":/,;", msg2.callStack.front().getOrigFile(false));
         ASSERT_EQUALS(654, msg2.callStack.front().line);
         ASSERT_EQUALS(33, msg2.callStack.front().column);
         ASSERT_EQUALS("abcd:/,", msg2.callStack.front().getinfo());

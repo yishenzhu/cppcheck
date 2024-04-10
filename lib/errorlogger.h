@@ -54,11 +54,12 @@ public:
      */
     class CPPCHECKLIB WARN_UNUSED FileLocation {
     public:
-        FileLocation(const std::string &file, int line, unsigned int column)
-            : fileIndex(0), line(line), column(column), mOrigFileName(file), mFileName(file) {}
+        FileLocation(std::string file, int line, unsigned int column)
+            : fileIndex(0), line(line), column(column), mFileName(std::move(file)) {}
 
-        FileLocation(const std::string &file, std::string info, int line, unsigned int column)
-            : fileIndex(0), line(line), column(column), mOrigFileName(file), mFileName(file), mInfo(std::move(info)) {}
+        FileLocation(std::string file, std::string info, int line, unsigned int column)
+            : fileIndex(0), line(line), column(column), mFileName(std::move(file)), mInfo(std::move(info)) {
+        }
 
         FileLocation(const Token* tok, const TokenList* tokenList);
         FileLocation(const Token* tok, std::string info, const TokenList* tokenList);
@@ -69,19 +70,6 @@ public:
          * @return filename.
          */
         std::string getfile(bool convert = true) const;
-
-        /**
-         * Filename with the whole path (no --rp)
-         * @param convert If true convert path to native separators.
-         * @return filename.
-         */
-        std::string getOrigFile(bool convert = true) const;
-
-        /**
-         * Set the filename.
-         * @param file Filename to set.
-         */
-        void setfile(std::string file);
 
         /**
          * @return the location as a string. Format: [file:line]
@@ -97,7 +85,6 @@ public:
         }
 
     private:
-        std::string mOrigFileName;
         std::string mFileName;
         std::string mInfo;
     };
@@ -155,6 +142,8 @@ public:
      * @return formatted string
      */
     std::string toString(bool verbose,
+                         bool relativePath,
+                         const std::vector<std::string>& basePaths,
                          const std::string &templateFormat = emptyString,
                          const std::string &templateLocation = emptyString) const;
 
