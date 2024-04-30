@@ -639,12 +639,29 @@ def test_json_file_ignore_2(tmpdir):
     assert_cppcheck(args, ec_exp=1, err_exp=[], out_exp=out_lines)
 
 
-def test_shared_items_project(tmpdir):
+def test_shared_items_project(tmpdir = ""):
+    # tmpdir is unused
     solutionDir = os.path.join(os.getcwd(), 'shared-items-project')
-    solutionFile = f"{solutionDir}/Solution.sln"
+    solutionFile = os.path.join(solutionDir, 'Solution.sln')
+    codeMainFile = os.path.join(solutionDir, 'Main', 'MainFile.cpp')
+    codeSharedFile = os.path.join(solutionDir, 'Shared', 'TestClass.cpp')
     
-    args = ['--project={}'.format(solutionFile), "-j1"]
-
-    # TODO: 
-    # - Assert "shared-items-project\Main\MainFile.Cpp"
-    # - Assert "shared-items-project\Shared\TestClass.Cpp"
+    args = [
+        '--platform=win64',
+        '--project={}'.format(solutionFile), 
+        '--project-configuration=Release|x64',
+        '-j1'
+    ]
+    
+    exitcode, stdout, stderr = cppcheck(args)
+    assert exitcode == 0
+    lines = stdout.splitlines()
+    assert lines == [
+        'Checking {} Release|x64...'.format(codeMainFile),
+        'Checking {}: _WIN32=1;_WIN64=1;_MSC_VER=1900...'.format(codeMainFile),
+        '1/2 files checked 50% done',
+        'Checking {} Release|x64...'.format(codeSharedFile),
+        'Checking {}: _WIN32=1;_WIN64=1;_MSC_VER=1900...'.format(codeSharedFile),
+        '2/2 files checked 100% done',
+    ]
+    assert stderr == ''
