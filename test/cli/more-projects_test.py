@@ -637,3 +637,14 @@ def test_json_file_ignore_2(tmpdir):
     ]
 
     assert_cppcheck(args, ec_exp=1, err_exp=[], out_exp=out_lines)
+
+
+def test_shared_items_project(tmpdir):
+    solutionDir = os.path.join(os.getcwd(), 'shared-items-project')
+    solutionFile = f"{solutionDir}/Solution.sln"
+    
+    args = ['--project={}'.format(solutionFile), "-j1"]
+
+    # TODO: 
+    # - Assert "shared-items-project\Main\MainFile.Cpp"
+    # - Assert "shared-items-project\Shared\TestClass.Cpp"
