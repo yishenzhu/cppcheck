@@ -287,7 +287,13 @@ void Settings::loadSummaries()
 
 void Settings::setCheckLevel(CheckLevel level)
 {
-    if (level == CheckLevel::normal) {
+    if (level == CheckLevel::fast) {
+        // Checking should finish quickly.
+        checkLevel = CheckLevel::fast;
+        performanceValueFlowMaxSubFunctionArgs = 8;
+        performanceValueFlowMaxIfCount = 100;
+    }
+    else if (level == CheckLevel::normal) {
         // Checking should finish in reasonable time.
         checkLevel = level;
         vfOptions.maxSubFunctionArgs = 8;

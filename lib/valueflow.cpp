@@ -102,6 +102,7 @@
 #include "token.h"
 #include "tokenlist.h"
 #include "utils.h"
+#include "valueflowfast.h"
 #include "valueptr.h"
 #include "vfvalue.h"
 
@@ -1257,7 +1258,7 @@ size_t ValueFlow::getSizeOf(const ValueType &vt, const Settings &settings, int m
 static bool getMinMaxValues(const ValueType* vt, const Platform& platform, MathLib::bigint& minValue, MathLib::bigint& maxValue);
 
 // Handle various constants..
-static Token * valueFlowSetConstantValue(Token *tok, const Settings &settings)
+Token * ValueFlow::valueFlowSetConstantValue(Token *tok, const Settings &settings)
 {
     if ((tok->isNumber() && MathLib::isInt(tok->str())) || (tok->tokType() == Token::eChar)) {
         try {
@@ -1471,7 +1472,7 @@ static Token * valueFlowSetConstantValue(Token *tok, const Settings &settings)
     return tok->next();
 }
 
-static void valueFlowNumber(TokenList &tokenlist, const Settings& settings)
+void ValueFlow::valueFlowNumber(TokenList &tokenlist, const Settings& settings)
 {
     for (Token *tok = tokenlist.front(); tok;) {
         tok = valueFlowSetConstantValue(tok, settings);
@@ -4931,7 +4932,7 @@ static bool isContainerOfPointers(const Token* tok, const Settings& settings)
     return vt.pointer > 0;
 }
 
-static void valueFlowLifetime(TokenList &tokenlist, ErrorLogger &errorLogger, const Settings &settings)
+void ValueFlow::valueFlowLifetime(TokenList &tokenlist, ErrorLogger &errorLogger, const Settings &settings)
 {
     for (Token *tok = tokenlist.front(); tok; tok = tok->next()) {
         if (!tok->scope())
@@ -9639,6 +9640,11 @@ void ValueFlow::setValues(TokenList& tokenlist,
                           const Settings& settings,
                           TimerResultsIntf* timerResults)
 {
+    if (settings.checkLevel == Settings::CheckLevel::fast) {
+        ValueFlowFast::setValues(tokenlist, symboldatabase, &errorLogger, settings);
+        return;
+    }
+
     for (Token* tok = tokenlist.front(); tok; tok = tok->next())
         tok->clearValueFlow();
 
