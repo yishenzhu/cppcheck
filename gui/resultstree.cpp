@@ -21,7 +21,6 @@
 #include "application.h"
 #include "applicationlist.h"
 #include "common.h"
-#include "config.h"
 #include "erroritem.h"
 #include "errorlogger.h"
 #include "errortypes.h"
@@ -78,6 +77,7 @@ static constexpr char SINCEDATE[] = "sinceDate";
 static constexpr char SYMBOLNAMES[] = "symbolNames";
 static constexpr char SUMMARY[] = "summary";
 static constexpr char TAGS[] = "tags";
+static constexpr char REMARK[] = "remark";
 
 // These must match column headers given in ResultsTree::translate()
 static constexpr int COLUMN_SINCE_DATE = 6;
@@ -186,6 +186,7 @@ bool ResultsTree::addErrorItem(const ErrorItem &item)
     if (const ProjectFile *activeProject = ProjectFile::getActiveProject()) {
         line.tags = activeProject->getWarningTags(item.hash);
     }
+    line.remark = item.remark;
     //Create the base item for the error and ensure it has a proper
     //file item as a parent
     QStandardItem* fileItem = ensureFileItem(loc.file, item.file0, hide);
@@ -214,6 +215,7 @@ bool ResultsTree::addErrorItem(const ErrorItem &item)
     data[SINCEDATE] = item.sinceDate;
     data[SYMBOLNAMES] = item.symbolNames;
     data[TAGS] = line.tags;
+    data[REMARK] = line.remark;
     data[HIDE] = hide;
     stditem->setData(QVariant(data));
 
@@ -250,9 +252,16 @@ bool ResultsTree::addErrorItem(const ErrorItem &item)
     }
 
     // Partially refresh the tree: Unhide file item if necessary
-    if (!hide) {
-        setRowHidden(fileItem->row(), QModelIndex(), !mShowSeverities.isShown(item.severity));
+    setRowHidden(stditem->row(), fileItem->index(), hide || !mShowSeverities.isShown(item.severity));
+
+    bool hideFile = true;
+    for (int i = 0; i < fileItem->rowCount(); ++i) {
+        if (!isRowHidden(i, fileItem->index())) {
+            hideFile = false;
+        }
     }
+    setRowHidden(fileItem->row(), QModelIndex(), hideFile);
+
     return true;
 }
 
@@ -965,7 +974,7 @@ void ResultsTree::recheckSelectedFiles()
                 askFileDir(currentFile);
                 return;
             }
-            if (Path::isHeader2(currentFile.toStdString())) {
+            if (Path::isHeader(currentFile.toStdString())) {
                 if (!data[FILE0].toString().isEmpty() && !selectedItems.contains(data[FILE0].toString())) {
                     selectedItems<<((!mCheckPath.isEmpty() && (data[FILE0].toString().indexOf(mCheckPath) != 0)) ? (mCheckPath + "/" + data[FILE0].toString()) : data[FILE0].toString());
                     if (!selectedItems.contains(fileNameWithCheckPath))
@@ -1289,6 +1298,7 @@ void ResultsTree::readErrorItem(const QStandardItem *error, ErrorItem *item) con
     item->file0 = data[FILE0].toString();
     item->sinceDate = data[SINCEDATE].toString();
     item->tags = data[TAGS].toString();
+    item->remark = data[REMARK].toString();
 
     if (error->rowCount() == 0) {
         QErrorPathItem e;

@@ -22,6 +22,7 @@
 #include "applicationlist.h"
 #include "aboutdialog.h"
 #include "analyzerinfo.h"
+#include "checkstatistics.h"
 #include "checkthread.h"
 #include "common.h"
 #include "cppcheck.h"
@@ -263,6 +264,8 @@ MainWindow::MainWindow(TranslationHandler* th, QSettings* settings) :
     mUI->mActionC89->setActionGroup(mCStandardActions);
     mUI->mActionC99->setActionGroup(mCStandardActions);
     mUI->mActionC11->setActionGroup(mCStandardActions);
+    //mUI->mActionC17->setActionGroup(mCStandardActions);
+    //mUI->mActionC23->setActionGroup(mCStandardActions);
 
     mUI->mActionCpp03->setActionGroup(mCppStandardActions);
     mUI->mActionCpp11->setActionGroup(mCppStandardActions);
@@ -270,6 +273,7 @@ MainWindow::MainWindow(TranslationHandler* th, QSettings* settings) :
     mUI->mActionCpp17->setActionGroup(mCppStandardActions);
     mUI->mActionCpp20->setActionGroup(mCppStandardActions);
     //mUI->mActionCpp23->setActionGroup(mCppStandardActions);
+    //mUI->mActionCpp26->setActionGroup(mCppStandardActions);
 
     mUI->mActionEnforceC->setActionGroup(mSelectLanguageActions);
     mUI->mActionEnforceCpp->setActionGroup(mSelectLanguageActions);
@@ -373,6 +377,8 @@ void MainWindow::loadSettings()
     mUI->mActionC89->setChecked(standards.c == Standards::C89);
     mUI->mActionC99->setChecked(standards.c == Standards::C99);
     mUI->mActionC11->setChecked(standards.c == Standards::C11);
+    //mUI->mActionC17->setChecked(standards.c == Standards::C17);
+    //mUI->mActionC23->setChecked(standards.c == Standards::C23);
     standards.setCPP(mSettings->value(SETTINGS_STD_CPP, QString()).toString().toStdString());
     mUI->mActionCpp03->setChecked(standards.cpp == Standards::CPP03);
     mUI->mActionCpp11->setChecked(standards.cpp == Standards::CPP11);
@@ -380,6 +386,7 @@ void MainWindow::loadSettings()
     mUI->mActionCpp17->setChecked(standards.cpp == Standards::CPP17);
     mUI->mActionCpp20->setChecked(standards.cpp == Standards::CPP20);
     //mUI->mActionCpp23->setChecked(standards.cpp == Standards::CPP23);
+    //mUI->mActionCpp26->setChecked(standards.cpp == Standards::CPP26);
 
     // Main window settings
     const bool showMainToolbar = mSettings->value(SETTINGS_TOOLBARS_MAIN_SHOW, true).toBool();
@@ -451,6 +458,10 @@ void MainWindow::saveSettings() const
         mSettings->setValue(SETTINGS_STD_C, "C99");
     if (mUI->mActionC11->isChecked())
         mSettings->setValue(SETTINGS_STD_C, "C11");
+    //if (mUI->mActionC17->isChecked())
+    //    mSettings->setValue(SETTINGS_STD_C, "C17");
+    //if (mUI->mActionC23->isChecked())
+    //    mSettings->setValue(SETTINGS_STD_C, "C23");
 
     if (mUI->mActionCpp03->isChecked())
         mSettings->setValue(SETTINGS_STD_CPP, "C++03");
@@ -464,6 +475,8 @@ void MainWindow::saveSettings() const
         mSettings->setValue(SETTINGS_STD_CPP, "C++20");
     //if (mUI.mActionCpp23->isChecked())
     //    mSettings->setValue(SETTINGS_STD_CPP, "C++23");
+    //if (mUI.mActionCpp26->isChecked())
+    //    mSettings->setValue(SETTINGS_STD_CPP, "C++26");
 
     // Main window settings
     mSettings->setValue(SETTINGS_TOOLBARS_MAIN_SHOW, mUI->mToolBarMain->isVisible());
@@ -1005,6 +1018,8 @@ QPair<bool,Settings> MainWindow::getCppcheckSettings()
         QStringList dirs = mProjectFile->getIncludeDirs();
         addIncludeDirs(dirs, result);
 
+        result.inlineSuppressions = mProjectFile->getInlineSuppression();
+
         const QStringList defines = mProjectFile->getDefines();
         for (const QString& define : defines) {
             if (!result.userDefines.empty())
@@ -1098,6 +1113,8 @@ QPair<bool,Settings> MainWindow::getCppcheckSettings()
             result.setMisraRuleTexts(CheckThread::executeCommand);
         }
     }
+    else
+        result.inlineSuppressions = mSettings->value(SETTINGS_INLINE_SUPPRESSIONS, false).toBool();
 
     // Include directories (and files) are searched in listed order.
     // Global include directories must be added AFTER the per project include
@@ -1122,7 +1139,6 @@ QPair<bool,Settings> MainWindow::getCppcheckSettings()
     result.force = mSettings->value(SETTINGS_CHECK_FORCE, 1).toBool();
     result.xml = false;
     result.jobs = mSettings->value(SETTINGS_CHECK_THREADS, 1).toInt();
-    result.inlineSuppressions = mSettings->value(SETTINGS_INLINE_SUPPRESSIONS, false).toBool();
     result.certainty.setEnabled(Certainty::inconclusive, mSettings->value(SETTINGS_INCONCLUSIVE_ERRORS, false).toBool());
     if (!mProjectFile || result.platform.type == Platform::Type::Unspecified)
         result.platform.set((Platform::Type) mSettings->value(SETTINGS_CHECKED_PLATFORM, 0).toInt());
@@ -1593,7 +1609,7 @@ void MainWindow::complianceReport()
 
     mUI->mResults->save(tempResults.fileName(), Report::XMLV2, mCppcheckCfgProductName);
 
-    ComplianceReportDialog dlg(mProjectFile, tempResults.fileName());
+    ComplianceReportDialog dlg(mProjectFile, tempResults.fileName(), mUI->mResults->getStatistics()->getCheckersReport());
     dlg.exec();
 }
 

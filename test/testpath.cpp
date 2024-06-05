@@ -38,9 +38,6 @@ private:
         TEST_CASE(getCurrentExecutablePath);
         TEST_CASE(isAbsolute);
         TEST_CASE(getRelative);
-        TEST_CASE(is_c);
-        TEST_CASE(is_cpp);
-        TEST_CASE(is_header);
         TEST_CASE(get_path_from_filename);
         TEST_CASE(join);
         TEST_CASE(isDirectory);
@@ -48,7 +45,8 @@ private:
         TEST_CASE(sameFileName);
         TEST_CASE(getFilenameExtension);
         TEST_CASE(identify);
-        TEST_CASE(is_header_2);
+        TEST_CASE(identifyWithCppProbe);
+        TEST_CASE(is_header);
     }
 
     void removeQuotationMarks() const {
@@ -130,82 +128,6 @@ private:
         ASSERT_EQUALS("C:/test.cpp", Path::getRelativePath("C:/test.cpp", basePaths));
         ASSERT_EQUALS("C:/foobar/test.cpp", Path::getRelativePath("C:/foobar/test.cpp", basePaths));
     }
-
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-#endif
-
-    void is_c() const {
-        ASSERT(Path::isC("index.c"));
-        ASSERT(Path::isC("index.cl"));
-        ASSERT(Path::isC("C:\\foo\\index.c"));
-        ASSERT(Path::isC("/mnt/c/foo/index.c"));
-
-        // In unix .C is considered C++
-#if defined(_WIN32) || (defined(__APPLE__) && defined(__MACH__))
-        ASSERT_EQUALS(true, Path::isC("C:\\foo\\index.C"));
-#else
-        ASSERT_EQUALS(false, Path::isC("C:\\foo\\index.C"));
-#endif
-
-        ASSERT(Path::isC("index.cpp")==false);
-        ASSERT(Path::isC("")==false);
-        ASSERT(Path::isC("c")==false);
-
-        // unlike isCPP() it does not account for headers
-        ASSERT(Path::isC(".h")==false);
-    }
-
-    void is_cpp() const {
-        ASSERT(Path::isCPP("index.cpp"));
-        ASSERT(Path::isCPP("index.cxx"));
-        ASSERT(Path::isCPP("index.cc"));
-        ASSERT(Path::isCPP("index.c++"));
-        ASSERT(Path::isCPP("index.tpp"));
-        ASSERT(Path::isCPP("index.txx"));
-        ASSERT(Path::isCPP("index.ipp"));
-        ASSERT(Path::isCPP("index.ixx"));
-        ASSERT(Path::isCPP("C:\\foo\\index.cpp"));
-        ASSERT(Path::isCPP("C:\\foo\\index.Cpp"));
-        ASSERT(Path::isCPP("/mnt/c/foo/index.cpp"));
-        ASSERT(Path::isCPP("/mnt/c/foo/index.Cpp"));
-
-        // In unix .C is considered C++
-#if defined(_WIN32) || (defined(__APPLE__) && defined(__MACH__))
-        ASSERT_EQUALS(false, Path::isCPP("index.C"));
-#else
-        ASSERT_EQUALS(true, Path::isCPP("index.C"));
-#endif
-
-        ASSERT(Path::isCPP("index.c")==false);
-
-        // C++ headers are also considered C++
-        ASSERT(Path::isCPP("index.hpp"));
-        // .h++ is missing in the list of C++ headers
-        ASSERT(Path::isCPP("index.h++")==false);
-    }
-
-    void is_header() const {
-        ASSERT(Path::isHeader("index.h"));
-        ASSERT(Path::isHeader("index.hpp"));
-        ASSERT(Path::isHeader("index.hxx"));
-        ASSERT(Path::isHeader("index.h++"));
-        ASSERT(Path::isHeader("index.hh"));
-
-        ASSERT(Path::isHeader("index.c")==false);
-        ASSERT(Path::isHeader("index.cpp")==false);
-
-        // function uses heuristic approach which causes these false positives
-        // no need to fix - function is deprecated and was replaced by identify()
-        TODO_ASSERT(Path::isHeader("index.header")==false);
-        TODO_ASSERT(Path::isHeader("index.htm")==false);
-        TODO_ASSERT(Path::isHeader("index.html")==false);
-    }
-
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
 
     void get_path_from_filename() const {
         ASSERT_EQUALS("", Path::getPathFromFilename("index.h"));
@@ -292,94 +214,167 @@ private:
         Standards::Language lang;
         bool header;
 
-        ASSERT_EQUALS(Standards::Language::None, Path::identify(""));
-        ASSERT_EQUALS(Standards::Language::None, Path::identify("c"));
-        ASSERT_EQUALS(Standards::Language::None, Path::identify("cpp"));
-        ASSERT_EQUALS(Standards::Language::None, Path::identify("h"));
-        ASSERT_EQUALS(Standards::Language::None, Path::identify("hpp"));
+        ASSERT_EQUALS(Standards::Language::None, Path::identify("", false));
+        ASSERT_EQUALS(Standards::Language::None, Path::identify("c", false));
+        ASSERT_EQUALS(Standards::Language::None, Path::identify("cpp", false));
+        ASSERT_EQUALS(Standards::Language::None, Path::identify("h", false));
+        ASSERT_EQUALS(Standards::Language::None, Path::identify("hpp", false));
 
         // TODO: what about files starting with a "."?
-        //ASSERT_EQUALS(Standards::Language::None, Path::identify(".c"));
-        //ASSERT_EQUALS(Standards::Language::None, Path::identify(".cpp"));
-        //ASSERT_EQUALS(Standards::Language::None, Path::identify(".h"));
-        //ASSERT_EQUALS(Standards::Language::None, Path::identify(".hpp"));
+        //ASSERT_EQUALS(Standards::Language::None, Path::identify(".c", false));
+        //ASSERT_EQUALS(Standards::Language::None, Path::identify(".cpp", false));
+        //ASSERT_EQUALS(Standards::Language::None, Path::identify(".h", false));
+        //ASSERT_EQUALS(Standards::Language::None, Path::identify(".hpp", false));
 
         // C
-        ASSERT_EQUALS(Standards::Language::C, Path::identify("index.c"));
-        ASSERT_EQUALS(Standards::Language::C, Path::identify("index.cl"));
-        ASSERT_EQUALS(Standards::Language::C, Path::identify("C:\\foo\\index.c"));
-        ASSERT_EQUALS(Standards::Language::C, Path::identify("/mnt/c/foo/index.c"));
+        ASSERT_EQUALS(Standards::Language::C, Path::identify("index.c", false));
+        ASSERT_EQUALS(Standards::Language::C, Path::identify("index.cl", false));
+        ASSERT_EQUALS(Standards::Language::C, Path::identify("C:\\foo\\index.c", false));
+        ASSERT_EQUALS(Standards::Language::C, Path::identify("/mnt/c/foo/index.c", false));
 
         // In unix .C is considered C++
 #ifdef _WIN32
-        ASSERT_EQUALS(Standards::Language::C, Path::identify("C:\\foo\\index.C"));
+        ASSERT_EQUALS(Standards::Language::C, Path::identify("C:\\foo\\index.C", false));
 #endif
 
-        lang = Path::identify("index.c", &header);
+        lang = Path::identify("index.c", false, &header);
         ASSERT_EQUALS(Standards::Language::C, lang);
         ASSERT_EQUALS(false, header);
 
         // C++
-        ASSERT_EQUALS(Standards::Language::CPP, Path::identify("index.cpp"));
-        ASSERT_EQUALS(Standards::Language::CPP, Path::identify("index.cxx"));
-        ASSERT_EQUALS(Standards::Language::CPP, Path::identify("index.cc"));
-        ASSERT_EQUALS(Standards::Language::CPP, Path::identify("index.c++"));
-        ASSERT_EQUALS(Standards::Language::CPP, Path::identify("index.tpp"));
-        ASSERT_EQUALS(Standards::Language::CPP, Path::identify("index.txx"));
-        ASSERT_EQUALS(Standards::Language::CPP, Path::identify("index.ipp"));
-        ASSERT_EQUALS(Standards::Language::CPP, Path::identify("index.ixx"));
-        ASSERT_EQUALS(Standards::Language::CPP, Path::identify("C:\\foo\\index.cpp"));
-        ASSERT_EQUALS(Standards::Language::CPP, Path::identify("C:\\foo\\index.Cpp"));
-        ASSERT_EQUALS(Standards::Language::CPP, Path::identify("/mnt/c/foo/index.cpp"));
-        ASSERT_EQUALS(Standards::Language::CPP, Path::identify("/mnt/c/foo/index.Cpp"));
+        ASSERT_EQUALS(Standards::Language::CPP, Path::identify("index.cpp", false));
+        ASSERT_EQUALS(Standards::Language::CPP, Path::identify("index.cxx", false));
+        ASSERT_EQUALS(Standards::Language::CPP, Path::identify("index.cc", false));
+        ASSERT_EQUALS(Standards::Language::CPP, Path::identify("index.c++", false));
+        ASSERT_EQUALS(Standards::Language::CPP, Path::identify("index.tpp", false));
+        ASSERT_EQUALS(Standards::Language::CPP, Path::identify("index.txx", false));
+        ASSERT_EQUALS(Standards::Language::CPP, Path::identify("index.ipp", false));
+        ASSERT_EQUALS(Standards::Language::CPP, Path::identify("index.ixx", false));
+        ASSERT_EQUALS(Standards::Language::CPP, Path::identify("C:\\foo\\index.cpp", false));
+        ASSERT_EQUALS(Standards::Language::CPP, Path::identify("C:\\foo\\index.Cpp", false));
+        ASSERT_EQUALS(Standards::Language::CPP, Path::identify("/mnt/c/foo/index.cpp", false));
+        ASSERT_EQUALS(Standards::Language::CPP, Path::identify("/mnt/c/foo/index.Cpp", false));
 
         // TODO: check for case-insenstive filesystem instead
         // In unix .C is considered C++
 #if !defined(_WIN32) && !(defined(__APPLE__) && defined(__MACH__))
-        ASSERT_EQUALS(Standards::Language::CPP, Path::identify("index.C"));
+        ASSERT_EQUALS(Standards::Language::CPP, Path::identify("index.C", false));
 #else
-        ASSERT_EQUALS(Standards::Language::C, Path::identify("index.C"));
+        ASSERT_EQUALS(Standards::Language::C, Path::identify("index.C", false));
 #endif
 
-        lang = Path::identify("index.cpp", &header);
+        lang = Path::identify("index.cpp", false, &header);
         ASSERT_EQUALS(Standards::Language::CPP, lang);
         ASSERT_EQUALS(false, header);
 
         // headers
-        lang = Path::identify("index.h", &header);
+        lang = Path::identify("index.h", false, &header);
         ASSERT_EQUALS(Standards::Language::C, lang);
         ASSERT_EQUALS(true, header);
 
-        lang = Path::identify("index.hpp", &header);
+        lang = Path::identify("index.hpp", false, &header);
         ASSERT_EQUALS(Standards::Language::CPP, lang);
         ASSERT_EQUALS(true, header);
-        lang = Path::identify("index.hxx", &header);
+        lang = Path::identify("index.hxx", false, &header);
         ASSERT_EQUALS(Standards::Language::CPP, lang);
         ASSERT_EQUALS(true, header);
-        lang = Path::identify("index.h++", &header);
+        lang = Path::identify("index.h++", false, &header);
         ASSERT_EQUALS(Standards::Language::CPP, lang);
         ASSERT_EQUALS(true, header);
-        lang = Path::identify("index.hh", &header);
+        lang = Path::identify("index.hh", false, &header);
         ASSERT_EQUALS(Standards::Language::CPP, lang);
         ASSERT_EQUALS(true, header);
 
-        ASSERT_EQUALS(Standards::Language::None, Path::identify("index.header"));
-        ASSERT_EQUALS(Standards::Language::None, Path::identify("index.htm"));
-        ASSERT_EQUALS(Standards::Language::None, Path::identify("index.html"));
+        ASSERT_EQUALS(Standards::Language::None, Path::identify("index.header", false));
+        ASSERT_EQUALS(Standards::Language::None, Path::identify("index.htm", false));
+        ASSERT_EQUALS(Standards::Language::None, Path::identify("index.html", false));
     }
 
-    void is_header_2() const {
-        ASSERT(Path::isHeader2("index.h"));
-        ASSERT(Path::isHeader2("index.hpp"));
-        ASSERT(Path::isHeader2("index.hxx"));
-        ASSERT(Path::isHeader2("index.h++"));
-        ASSERT(Path::isHeader2("index.hh"));
+#define identifyWithCppProbeInternal(...) identifyWithCppProbeInternal_(__FILE__, __LINE__, __VA_ARGS__)
+    void identifyWithCppProbeInternal_(const char* file, int line, const std::string& filename, const std::string& marker, Standards::Language std) const
+    {
+        const ScopedFile f(filename, marker);
+        ASSERT_EQUALS_LOC_MSG(std, Path::identify(f.path(), true), filename + "\n" + marker, file, line);
+    }
 
-        ASSERT(Path::isHeader2("index.c")==false);
-        ASSERT(Path::isHeader2("index.cpp")==false);
-        ASSERT(Path::isHeader2("index.header")==false);
-        ASSERT(Path::isHeader2("index.htm")==false);
-        ASSERT(Path::isHeader2("index.html")==false);
+    void identifyWithCppProbe() const
+    {
+        const std::list<std::string> markers_cpp = {
+            "// -*- C++ -*-",
+            "// -*-C++-*-",
+            "// -*- Mode: C++; -*-",
+            "// -*-Mode: C++;-*-",
+            "// -*- Mode:C++; -*-",
+            "// -*-Mode:C++;-*-",
+            "// -*- Mode: C++ -*-",
+            "// -*-Mode: C++-*-",
+            "// -*- Mode:C++ -*-",
+            "// -*-Mode:C++-*-",
+            "// -*- Mode: C++; c-basic-offset: 8 -*-",
+            "// -*- Mode: C++; c-basic-offset: 2; indent-tabs-mode: nil -*-",
+
+            "// -*- c++ -*-",
+            "// -*- mode: c++; -*-",
+
+            //"/* -*- C++ -*- */"
+
+            "//-*- C++ -*-",
+            " //-*- C++ -*-",
+            "\t//-*- C++ -*-",
+            "\t //-*- C++ -*-",
+            " \t//-*- C++ -*-",
+            "// -----*- C++ -*-----",
+            "// comment-*- C++ -*-comment",
+            "//-*- C++ -*-\r// comment",
+            "//-*- C++ -*-\n// comment",
+            "//-*- C++ -*-\r\n// comment",
+
+            //"/* -*-C++-*- */"
+            //"/*-*-C++-*-*/"
+        };
+
+        for (const auto& f : { "cppprobe.h", "cppprobe" }) {
+            for (const auto& m : markers_cpp) {
+                identifyWithCppProbeInternal(f, m, Standards::Language::CPP);
+            }
+        }
+
+        const std::list<std::string> markers_c = {
+            "-*- C++ -*-", // needs to be in comment
+            "// -*- C++", // no end marker
+            "// -*- C++ --*-", // incorrect end marker
+            "// -*- C++/-*-", // unexpected character
+            "// comment\n// -*-C", // not on the first line
+            "// comment\r// -*-C", // not on the first line
+            "// comment\r\n// -*-C", // not on the first line
+            "// -*- C -*-",
+            "// -*- Mode: C; -*-",
+            "// -*- f90 -*-",
+            "// -*- fortran -*-",
+            "// -*- c-basic-offset: 2 -*-",
+            "// -*- c-basic-offset:4; indent-tabs-mode:nil -*-"
+        };
+
+        for (const auto& m : markers_c) {
+            identifyWithCppProbeInternal("cppprobe.h", m, Standards::Language::C);
+        }
+        for (const auto& m : markers_c) {
+            identifyWithCppProbeInternal("cppprobe", m, Standards::Language::None);
+        }
+    }
+
+    void is_header() const {
+        ASSERT(Path::isHeader("index.h"));
+        ASSERT(Path::isHeader("index.hpp"));
+        ASSERT(Path::isHeader("index.hxx"));
+        ASSERT(Path::isHeader("index.h++"));
+        ASSERT(Path::isHeader("index.hh"));
+
+        ASSERT(Path::isHeader("index.c")==false);
+        ASSERT(Path::isHeader("index.cpp")==false);
+        ASSERT(Path::isHeader("index.header")==false);
+        ASSERT(Path::isHeader("index.htm")==false);
+        ASSERT(Path::isHeader("index.html")==false);
     }
 };
 

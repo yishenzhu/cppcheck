@@ -24,6 +24,7 @@
 #include "settings.h"
 #include "tokenize.h"
 
+#include <cstddef>
 #include <limits>
 #include <string>
 #include <vector>
@@ -538,7 +539,8 @@ private:
         ASSERT_EQUALS("", errout_str());
     }
 
-    void checkPureFunction_(const char code[], const char* file, int line) {
+    template<size_t size>
+    void checkPureFunction_(const char (&code)[size], const char* file, int line) {
         // Tokenize..
         SimpleTokenizer tokenizer(settings1, *this);
         ASSERT_LOC(tokenizer.tokenize(code), file, line);
@@ -2129,6 +2131,15 @@ private:
               "    bool m_value = false;\n"
               "};");
         ASSERT_EQUALS("", errout_str());
+
+        // #12725
+        check("bool f(bool b) {\n"
+              "    if (b)\n"
+              "        return !b;\n"
+              "    b = g();\n"
+              "    return b;\n"
+              "}\n");
+        ASSERT_EQUALS("[test.cpp:2] -> [test.cpp:3]: (style) Return value '!b' is always false\n", errout_str());
     }
 
     void oppositeInnerConditionPointers() {
@@ -4573,6 +4584,22 @@ private:
               "    return 1;\n"
               "}\n");
         ASSERT_EQUALS("", errout_str());
+
+        check("namespace S { int s{}; };\n" // #11046
+              "void f(bool b) {\n"
+              "    if (S::s) {\n"
+              "        if (b) {\n"
+              "            if (S::s) {}\n"
+              "        }\n"
+              "    }\n"
+              "}\n");
+        ASSERT_EQUALS("[test.cpp:5]: (style) Condition 'S::s' is always true\n", errout_str());
+
+        check("void f() {\n" // #10811
+              "    int i = 0;\n"
+              "    if ((i = g(), 1) != 0) {}\n"
+              "}\n");
+        ASSERT_EQUALS("[test.cpp:3]: (style) Condition '(i=g(),1)!=0' is always true\n", errout_str());
     }
 
     void alwaysTrueSymbolic()
@@ -4771,6 +4798,23 @@ private:
               "        else if (i > n) {}\n"
               "        else {}\n"
               "    }\n"
+              "}\n");
+        ASSERT_EQUALS("", errout_str());
+
+        // #12681
+        check("void f(unsigned u) {\n"
+              "      if (u > 0) {\n"
+              "             u--;\n"
+              "             if (u == 0) {}\n"
+              "      }\n"
+              "}\n");
+        ASSERT_EQUALS("", errout_str());
+
+        check("void f(unsigned u) {\n"
+              "      if (u < 0xFFFFFFFF) {\n"
+              "             u++;\n"
+              "             if (u == 0xFFFFFFFF) {}\n"
+              "      }\n"
               "}\n");
         ASSERT_EQUALS("", errout_str());
     }
@@ -5263,6 +5307,17 @@ private:
               "    for (int i = 1000; i < 20; ++i) {}\n"
               "}\n");
         ASSERT_EQUALS("[test.cpp:2]: (style) Condition 'i<20' is always false\n", errout_str());
+
+        check("int foo(int foo, int bar, bool baz, bool flag) {\n"
+              "    if (baz && flag) {\n"
+              "        do {\n"
+              "            if (bar==42)\n"
+              "                return 0;\n"
+              "        } while (flag);\n"
+              "    }\n"
+              "    return foo;\n"
+              "}\n");
+        ASSERT_EQUALS("[test.cpp:2] -> [test.cpp:6]: (style) Condition 'flag' is always true\n", errout_str());
     }
 
     void alwaysTrueTryCatch()
@@ -5546,6 +5601,12 @@ private:
               "    return a + b;\n"
               "}\n");
         ASSERT_EQUALS("[test.cpp:4] -> [test.cpp:6]: (style) The if condition is the same as the previous if condition\n", errout_str());
+
+        check("void f(double d) {\n" // #12712
+              "    if (std::isfinite(d)) {}\n"
+              "    if (std::isfinite(d)) {}\n"
+              "}\n");
+        ASSERT_EQUALS("[test.cpp:2] -> [test.cpp:3]: (style) The if condition is the same as the previous if condition\n", errout_str());
 
         // do not crash
         check("void assign(const MMA& other) {\n"

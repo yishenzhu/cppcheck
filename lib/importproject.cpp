@@ -33,6 +33,7 @@
 #include <iostream>
 #include <iterator>
 #include <sstream>
+#include <stack>
 #include <unordered_set>
 #include <utility>
 
@@ -571,6 +572,22 @@ namespace {
             TokenList tokenlist(&s);
             std::istringstream istr(c);
             tokenlist.createTokens(istr, Standards::Language::C); // TODO: check result
+            // TODO: put in a helper
+            // generate links
+            {
+                std::stack<Token*> lpar;
+                for (Token* tok2 = tokenlist.front(); tok2; tok2 = tok2->next()) {
+                    if (tok2->str() == "(")
+                        lpar.push(tok2);
+                    else if (tok2->str() == ")") {
+                        if (lpar.empty())
+                            break;
+                        Token::createMutualLinks(lpar.top(), tok2);
+                        lpar.pop();
+                    }
+                }
+            }
+            tokenlist.createAst();
             for (const Token *tok = tokenlist.front(); tok; tok = tok->next()) {
                 if (tok->str() == "(" && tok->astOperand1() && tok->astOperand2()) {
                     // TODO: this is wrong - it is Contains() not Equals()
@@ -1313,6 +1330,8 @@ bool ImportProject::importCppcheckGuiProject(std::istream &istr, Settings *setti
             checkLevelExhaustive = true;
         else if (strcmp(node->Name(), CppcheckXml::CheckUnusedTemplatesElementName) == 0)
             temp.checkUnusedTemplates = (strcmp(readSafe(node->GetText(), ""), "true") == 0);
+        else if (strcmp(node->Name(), CppcheckXml::InlineSuppression) == 0)
+            temp.inlineSuppressions = (strcmp(readSafe(node->GetText(), ""), "true") == 0);
         else if (strcmp(node->Name(), CppcheckXml::MaxCtuDepthElementName) == 0)
             temp.maxCtuDepth = strToInt<int>(readSafe(node->GetText(), "2")); // TODO: bail out when missing?
         else if (strcmp(node->Name(), CppcheckXml::MaxTemplateRecursionElementName) == 0)
@@ -1376,6 +1395,7 @@ bool ImportProject::importCppcheckGuiProject(std::istream &istr, Settings *setti
     settings->checkUnusedTemplates = temp.checkUnusedTemplates;
     settings->maxCtuDepth = temp.maxCtuDepth;
     settings->maxTemplateRecursion = temp.maxTemplateRecursion;
+    settings->inlineSuppressions |= temp.inlineSuppressions;
     settings->safeChecks = temp.safeChecks;
 
     if (checkLevelExhaustive)

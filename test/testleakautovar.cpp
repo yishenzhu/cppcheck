@@ -83,6 +83,7 @@ private:
         TEST_CASE(assign23);
         TEST_CASE(assign24); // #7440
         TEST_CASE(assign25);
+        TEST_CASE(assign26);
 
         TEST_CASE(isAutoDealloc);
 
@@ -227,7 +228,8 @@ private:
     }
 
 #define check(...) check_(__FILE__, __LINE__, __VA_ARGS__)
-    void check_(const char* file, int line, const char code[], bool cpp = false, const Settings *s = nullptr) {
+    template<size_t size>
+    void check_(const char* file, int line, const char (&code)[size], bool cpp = false, const Settings *s = nullptr) {
         const Settings settings1 = settingsBuilder(s ? *s : settings).checkLibrary().build();
 
         // Tokenize..
@@ -238,7 +240,8 @@ private:
         runChecks<CheckLeakAutoVar>(tokenizer, this);
     }
 
-    void check_(const char* file, int line, const char code[], const Settings & s) {
+    template<size_t size>
+    void check_(const char* file, int line, const char (&code)[size], const Settings & s) {
         const Settings settings0 = settingsBuilder(s).checkLibrary().build();
 
         // Tokenize..
@@ -617,6 +620,20 @@ private:
               "    li.push_back(c);\n"
               "    delete[] li.front().m_p;\n"
               "}\n", true);
+        ASSERT_EQUALS("", errout_str());
+    }
+
+    void assign26() {
+        check("void f(int*& x) {\n" // #8235
+              "    int* p = (int*)malloc(10);\n"
+              "    x = p ? p : nullptr;\n"
+              "}", true);
+        ASSERT_EQUALS("", errout_str());
+
+        check("void f(int*& x) {\n"
+              "    int* p = (int*)malloc(10);\n"
+              "    x = p != nullptr ? p : nullptr;\n"
+              "}", true);
         ASSERT_EQUALS("", errout_str());
     }
 
@@ -2823,27 +2840,31 @@ private:
     }
 
     void configuration3() {
-        const char * code = "void f() {\n"
-                            "    char *p = malloc(10);\n"
-                            "    if (set_data(p)) { }\n"
-                            "}";
-        check(code);
-        ASSERT_EQUALS("[test.c:4]: (information) --check-library: Function set_data() should have <use>/<leak-ignore> configuration\n", errout_str());
-        check(code, true);
-        ASSERT_EQUALS("[test.cpp:4]: (information) --check-library: Function set_data() should have <use>/<leak-ignore> configuration\n", errout_str());
+        {
+            const char code[] = "void f() {\n"
+                                "    char *p = malloc(10);\n"
+                                "    if (set_data(p)) { }\n"
+                                "}";
+            check(code);
+            ASSERT_EQUALS("[test.c:4]: (information) --check-library: Function set_data() should have <use>/<leak-ignore> configuration\n", errout_str());
+            check(code, true);
+            ASSERT_EQUALS("[test.cpp:4]: (information) --check-library: Function set_data() should have <use>/<leak-ignore> configuration\n", errout_str());
+        }
 
-        code = "void f() {\n"
-               "    char *p = malloc(10);\n"
-               "    if (set_data(p)) { return; }\n"
-               "}";
-        check(code);
-        ASSERT_EQUALS("[test.c:3]: (information) --check-library: Function set_data() should have <use>/<leak-ignore> configuration\n"
-                      "[test.c:4]: (information) --check-library: Function set_data() should have <use>/<leak-ignore> configuration\n"
-                      , errout_str());
-        check(code, true);
-        ASSERT_EQUALS("[test.cpp:3]: (information) --check-library: Function set_data() should have <use>/<leak-ignore> configuration\n"
-                      "[test.cpp:4]: (information) --check-library: Function set_data() should have <use>/<leak-ignore> configuration\n"
-                      , errout_str());
+        {
+            const char code[] = "void f() {\n"
+                                "    char *p = malloc(10);\n"
+                                "    if (set_data(p)) { return; }\n"
+                                "}";
+            check(code);
+            ASSERT_EQUALS("[test.c:3]: (information) --check-library: Function set_data() should have <use>/<leak-ignore> configuration\n"
+                          "[test.c:4]: (information) --check-library: Function set_data() should have <use>/<leak-ignore> configuration\n"
+                          , errout_str());
+            check(code, true);
+            ASSERT_EQUALS("[test.cpp:3]: (information) --check-library: Function set_data() should have <use>/<leak-ignore> configuration\n"
+                          "[test.cpp:4]: (information) --check-library: Function set_data() should have <use>/<leak-ignore> configuration\n"
+                          , errout_str());
+        }
     }
 
     void configuration4() {
@@ -3116,7 +3137,8 @@ public:
 private:
     const Settings settings = settingsBuilder().library("std.cfg").checkLibrary().build();
 
-    void check_(const char* file, int line, const char code[]) {
+    template<size_t size>
+    void check_(const char* file, int line, const char (&code)[size]) {
         // Tokenize..
         SimpleTokenizer tokenizer(settings, *this);
         ASSERT_LOC(tokenizer.tokenize(code), file, line);
@@ -3219,7 +3241,8 @@ public:
 private:
     const Settings settings = settingsBuilder().library("windows.cfg").build();
 
-    void check_(const char* file, int line, const char code[]) {
+    template<size_t size>
+    void check_(const char* file, int line, const char (&code)[size]) {
         // Tokenize..
         SimpleTokenizer tokenizer(settings, *this);
         ASSERT_LOC(tokenizer.tokenize(code, false), file, line);
@@ -3290,7 +3313,8 @@ public:
 private:
     const Settings settings = settingsBuilder().library("std.cfg").library("posix.cfg").build();
 
-    void check_(const char* file, int line, const char code[]) {
+    template<size_t size>
+    void check_(const char* file, int line, const char (&code)[size]) {
         // Tokenize..
         SimpleTokenizer tokenizer(settings, *this);
         ASSERT_LOC(tokenizer.tokenize(code), file, line);

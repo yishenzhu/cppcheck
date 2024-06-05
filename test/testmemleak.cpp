@@ -24,6 +24,7 @@
 #include "symboldatabase.h"
 #include "token.h"
 
+#include <cstddef>
 #include <list>
 
 class TestMemleak : private TestFixture {
@@ -39,7 +40,8 @@ private:
     }
 
 #define functionReturnType(code) functionReturnType_(code, __FILE__, __LINE__)
-    CheckMemoryLeak::AllocType functionReturnType_(const char code[], const char* file, int line) {
+    template<size_t size>
+    CheckMemoryLeak::AllocType functionReturnType_(const char (&code)[size], const char* file, int line) {
         // Tokenize..
         SimpleTokenizer tokenizer(settings, *this);
         ASSERT_LOC(tokenizer.tokenize(code), file, line);
@@ -113,7 +115,8 @@ private:
     const Settings settings = settingsBuilder().library("std.cfg").library("posix.cfg").build();
 
 #define check(...) check_(__FILE__, __LINE__, __VA_ARGS__)
-    void check_(const char* file, int line, const char code[]) {
+    template<size_t size>
+    void check_(const char* file, int line, const char (&code)[size]) {
         // Tokenize..
         SimpleTokenizer tokenizer(settings, *this);
         ASSERT_LOC(tokenizer.tokenize(code), file, line);
@@ -438,7 +441,8 @@ private:
      * Tokenize and execute leak check for given code
      * @param code Source code
      */
-    void check_(const char* file, int line, const char code[]) {
+    template<size_t size>
+    void check_(const char* file, int line, const char (&code)[size]) {
         // Tokenize..
         SimpleTokenizer tokenizer(settings, *this);
         ASSERT_LOC(tokenizer.tokenize(code), file, line);
@@ -1641,7 +1645,8 @@ public:
 private:
     const Settings settings = settingsBuilder().library("std.cfg").library("posix.cfg").build();
 
-    void check_(const char* file, int line, const char code[], bool cpp = true) {
+    template<size_t size>
+    void check_(const char* file, int line, const char (&code)[size], bool cpp = true) {
         // Tokenize..
         SimpleTokenizer tokenizer(settings, *this);
         ASSERT_LOC(tokenizer.tokenize(code, cpp), file, line);
@@ -2248,7 +2253,8 @@ public:
 private:
     const Settings settings = settingsBuilder().certainty(Certainty::inconclusive).severity(Severity::warning).library("std.cfg").library("posix.cfg").build();
 
-    void check_(const char* file, int line, const char code[]) {
+    template<size_t size>
+    void check_(const char* file, int line, const char (&code)[size]) {
         // Tokenize..
         SimpleTokenizer tokenizer(settings, *this);
         ASSERT_LOC(tokenizer.tokenize(code), file, line);
@@ -2491,6 +2497,15 @@ private:
               "    foo(ptr);\n"
               "    free(ptr);\n"
               "}");
+        ASSERT_EQUALS("", errout_str());
+
+        check("int f( void ) {\n" // FP: #11246
+              "  void* address = malloc( 1 );\n"
+              "  int ok = address != 0;\n"
+              "  if ( ok )\n"
+              "    free( address ), address = 0;\n"
+              "  return 0;\n"
+              "} ");
         ASSERT_EQUALS("", errout_str());
 
         check("char** x(const char* str) {\n"
@@ -2740,6 +2755,16 @@ private:
         ASSERT_EQUALS("", errout_str());
     }
     void resourceLeak() {
+        check("bool f(const char* name)\n" // FP: #12253
+              "{\n"
+              "    FILE* fp = fopen(name, \"r\");\n"
+              "    bool result = (fp == nullptr);\n"
+              "    if (result) return !result;\n"
+              "    fclose(fp);\n"
+              "    return result;\n"
+              "}");
+        ASSERT_EQUALS("", errout_str());
+
         check("void foo() {\n"
               "  fopen(\"file.txt\", \"r\");\n"
               "}");

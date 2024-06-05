@@ -401,7 +401,7 @@ bool CheckLeakAutoVar::checkScope(const Token * const startToken,
             if (Token::simpleMatch(tokAssignOp->astOperand1(), "."))
                 continue;
             // taking address of another variable..
-            if (Token::Match(tokAssignOp, "= %var% [+;]")) {
+            if (Token::Match(tokAssignOp, "= %var% +|;|?|%comp%")) {
                 if (varTok->tokAt(2)->varId() != varTok->varId()) {
                     // If variable points at allocated memory => error
                     leakIfAllocated(varTok, varInfo);
@@ -701,7 +701,7 @@ bool CheckLeakAutoVar::checkScope(const Token * const startToken,
                 continue;
             functionCall(ftok, openingPar, varInfo, allocation, af);
 
-            tok = ftok->next()->link();
+            tok = ftok->linkAt(1);
 
             // Handle scopes that might be noreturn
             if (allocation.status == VarInfo::NOALLOC && Token::simpleMatch(tok, ") ; }")) {
@@ -923,7 +923,7 @@ void CheckLeakAutoVar::changeAllocStatus(VarInfo &varInfo, const VarInfo::AllocI
         if (allocation.status == VarInfo::NOALLOC) {
             // possible usage
             varInfo.possibleUsage[arg->varId()] = { tok, VarInfo::USED };
-            if (var->second.status == VarInfo::DEALLOC && arg->previous()->str() == "&")
+            if (var->second.status == VarInfo::DEALLOC && arg->strAt(-1) == "&")
                 varInfo.erase(arg->varId());
         } else if (var->second.managed()) {
             doubleFreeError(tok, var->second.allocTok, arg->str(), allocation.type);

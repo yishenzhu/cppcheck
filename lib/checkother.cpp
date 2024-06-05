@@ -424,7 +424,9 @@ void CheckOther::invalidPointerCastError(const Token* tok, const std::string& fr
 
 void CheckOther::checkRedundantAssignment()
 {
-    if (!mSettings->severity.isEnabled(Severity::style) && !mSettings->isPremiumEnabled("redundantAssignment"))
+    if (!mSettings->severity.isEnabled(Severity::style) &&
+        !mSettings->isPremiumEnabled("redundantAssignment") &&
+        !mSettings->isPremiumEnabled("redundantAssignInSwitch"))
         return;
 
     logChecker("CheckOther::checkRedundantAssignment"); // style
@@ -773,7 +775,7 @@ void CheckOther::checkUnreachableCode()
     // misra-c-2023-2.1
     // misra-cpp-2008-0-1-1
     // autosar
-    if (!mSettings->severity.isEnabled(Severity::style) && !mSettings->isPremiumEnabled("unreachableCode"))
+    if (!mSettings->severity.isEnabled(Severity::style) && !mSettings->isPremiumEnabled("duplicateBreak") && !mSettings->isPremiumEnabled("unreachableCode"))
         return;
 
     logChecker("CheckOther::checkUnreachableCode"); // style
@@ -1326,8 +1328,10 @@ static bool isVariableMutableInInitializer(const Token* start, const Token * end
 
 void CheckOther::checkConstVariable()
 {
-    if (!mSettings->severity.isEnabled(Severity::style) || mTokenizer->isC())
+    if ((!mSettings->severity.isEnabled(Severity::style) || mTokenizer->isC()) && !mSettings->isPremiumEnabled("constVariable"))
         return;
+
+    logChecker("CheckOther::checkConstVariable"); // style,c++
 
     const SymbolDatabase *const symbolDatabase = mTokenizer->getSymbolDatabase();
 
@@ -1454,6 +1458,24 @@ static const Token* getVariableChangedStart(const Variable* p)
     return start;
 }
 
+static bool isConstPointerVariable(const Variable* p, const Settings& settings)
+{
+    const int indirect = p->isArray() ? p->dimensions().size() : 1;
+    const Token* start = getVariableChangedStart(p);
+    while (const Token* tok =
+               findVariableChanged(start, p->scope()->bodyEnd, indirect, p->declarationId(), false, settings)) {
+        if (p->isReference())
+            return false;
+        // Assigning a pointer through another pointer may still be const
+        if (!Token::simpleMatch(tok->astParent(), "="))
+            return false;
+        if (!astIsLHS(tok))
+            return false;
+        start = tok->next();
+    }
+    return true;
+}
+
 namespace {
     struct CompareVariables {
         bool operator()(const Variable* a, const Variable* b) const {
@@ -1476,6 +1498,7 @@ void CheckOther::checkConstPointer()
 {
     if (!mSettings->severity.isEnabled(Severity::style) &&
         !mSettings->isPremiumEnabled("constParameter") &&
+        !mSettings->isPremiumEnabled("constParameterReference") &&
         !mSettings->isPremiumEnabled("constPointer"))
         return;
 
@@ -1495,6 +1518,9 @@ void CheckOther::checkConstPointer()
                 !astIsRangeBasedForDecl(nameTok))
                 continue;
         }
+        // Skip function pointers
+        if (Token::Match(nameTok, "%name% ) ("))
+            continue;
         const ValueType* const vt = tok->valueType();
         if (!vt)
             continue;
@@ -1604,9 +1630,11 @@ void CheckOther::checkConstPointer()
                 continue;
         }
         if (std::find(nonConstPointers.cbegin(), nonConstPointers.cend(), p) == nonConstPointers.cend()) {
-            const Token *start = getVariableChangedStart(p);
-            const int indirect = p->isArray() ? p->dimensions().size() : 1;
-            if (isVariableChanged(start, p->scope()->bodyEnd, indirect, p->declarationId(), false, *mSettings))
+            // const Token *start = getVariableChangedStart(p);
+            // const int indirect = p->isArray() ? p->dimensions().size() : 1;
+            // if (isVariableChanged(start, p->scope()->bodyEnd, indirect, p->declarationId(), false, *mSettings))
+            //     continue;
+            if (!isConstPointerVariable(p, *mSettings))
                 continue;
             if (p->typeStartToken() && p->typeStartToken()->isSimplifiedTypedef() && !(Token::simpleMatch(p->typeEndToken(), "*") && !p->typeEndToken()->isSimplifiedTypedef()))
                 continue;
@@ -1858,7 +1886,7 @@ static bool isVoidStmt(const Token *tok)
     const Token *tok2 = tok;
     while (tok2->astOperand1())
         tok2 = tok2->astOperand1();
-    if (Token::simpleMatch(tok2->previous(), ")") && Token::simpleMatch(tok2->previous()->link(), "( void"))
+    if (Token::simpleMatch(tok2->previous(), ")") && Token::simpleMatch(tok2->linkAt(-1), "( void"))
         return true;
     if (Token::simpleMatch(tok2, "( void"))
         return true;
@@ -2501,7 +2529,7 @@ void CheckOther::checkDuplicateExpression()
                     if (isWithoutSideEffects(tok->astOperand1())) {
                         const Token* loopTok = isInLoopCondition(tok);
                         if (!loopTok ||
-                            !findExpressionChanged(tok, tok, loopTok->link()->next()->link(), *mSettings)) {
+                            !findExpressionChanged(tok, tok, loopTok->link()->linkAt(1), *mSettings)) {
                             const bool isEnum = tok->scope()->type == Scope::eEnum;
                             const bool assignment = !isEnum && tok->str() == "=";
                             if (assignment)
@@ -2512,7 +2540,7 @@ void CheckOther::checkDuplicateExpression()
                                     while (parent && parent->astParent()) {
                                         parent = parent->astParent();
                                     }
-                                    if (parent && parent->previous() && parent->previous()->str() == "static_assert") {
+                                    if (parent && parent->previous() && parent->strAt(-1) == "static_assert") {
                                         continue;
                                     }
                                 }
@@ -2873,7 +2901,9 @@ void CheckOther::checkRedundantCopy()
 
         const Token* dot = tok->astOperand1();
         if (Token::simpleMatch(dot, ".")) {
-            if (dot->astOperand1() && isVariableChanged(dot->astOperand1()->variable(), *mSettings))
+            const Token* varTok = dot->astOperand1();
+            const int indirect = varTok->valueType() ? varTok->valueType()->pointer : 0;
+            if (isVariableChanged(tok, tok->scope()->bodyEnd, varTok->varId(), indirect, /*globalvar*/ false, *mSettings))
                 continue;
             if (isTemporary(dot, &mSettings->library, /*unknown*/ true))
                 continue;
@@ -3185,11 +3215,11 @@ void CheckOther::checkInterlockedDecrement()
                 raceAfterInterlockedDecrementError(checkStartTok);
             }
         } else if (Token::Match(tok, "if ( ::| InterlockedDecrement ( & %name%")) {
-            const Token* condEnd = tok->next()->link();
+            const Token* condEnd = tok->linkAt(1);
             const Token* funcTok = tok->tokAt(2);
             const Token* firstAccessTok = funcTok->str() == "::" ? funcTok->tokAt(4) : funcTok->tokAt(3);
-            if (condEnd && condEnd->next() && condEnd->next()->link()) {
-                const Token* ifEndTok = condEnd->next()->link();
+            if (condEnd && condEnd->next() && condEnd->linkAt(1)) {
+                const Token* ifEndTok = condEnd->linkAt(1);
                 if (Token::Match(ifEndTok, "} return %name%")) {
                     const Token* secondAccessTok = ifEndTok->tokAt(2);
                     if (secondAccessTok->str() == firstAccessTok->str()) {
@@ -3260,19 +3290,82 @@ void CheckOther::unusedLabelError(const Token* tok, bool inSwitch, bool hasIfdef
                 Certainty::normal);
 }
 
+static bool checkEvaluationOrderC(const Token * tok, const Token * tok2, const Token * parent, const Settings & settings, bool & selfAssignmentError)
+{
+    // self assignment..
+    if (tok2 == tok && tok->str() == "=" && parent->str() == "=" && isSameExpression(false, tok->astOperand1(), parent->astOperand1(), settings, true, false)) {
+        if (settings.severity.isEnabled(Severity::warning) && isSameExpression(true, tok->astOperand1(), parent->astOperand1(), settings, true, false))
+            selfAssignmentError = true;
+        return false;
+    }
+    // Is expression used?
+    bool foundError = false;
+    visitAstNodes((parent->astOperand1() != tok2) ? parent->astOperand1() : parent->astOperand2(), [&](const Token *tok3) {
+        if (tok3->str() == "&" && !tok3->astOperand2())
+            return ChildrenToVisit::none; // don't handle address-of for now
+        if (tok3->str() == "(" && Token::simpleMatch(tok3->previous(), "sizeof"))
+            return ChildrenToVisit::none; // don't care about sizeof usage
+        if (isSameExpression(false, tok->astOperand1(), tok3, settings, true, false))
+            foundError = true;
+        return foundError ? ChildrenToVisit::done : ChildrenToVisit::op1_and_op2;
+    });
+
+    return foundError;
+}
+
+static bool checkEvaluationOrderCpp11(const Token * tok, const Token * tok2, const Token * parent, const Settings & settings)
+{
+    if (tok->isAssignmentOp()) // TODO check assignment
+        return false;
+    if (tok->previous() == tok->astOperand1() && parent->isArithmeticalOp() && parent->isBinaryOp()) {
+        if (parent->astParent() && parent->astParent()->isAssignmentOp() && isSameExpression(false, tok->astOperand1(), parent->astParent()->astOperand1(), settings, true, false))
+            return true;
+    }
+    bool foundUndefined{false};
+    visitAstNodes((parent->astOperand1() != tok2) ? parent->astOperand1() : parent->astOperand2(), [&](const Token *tok3) {
+        if (tok3->str() == "&" && !tok3->astOperand2())
+            return ChildrenToVisit::none; // don't handle address-of for now
+        if (tok3->str() == "(" && Token::simpleMatch(tok3->previous(), "sizeof"))
+            return ChildrenToVisit::none; // don't care about sizeof usage
+        if (isSameExpression(false, tok->astOperand1(), tok3, settings, true, false))
+            foundUndefined = true;
+        return foundUndefined ? ChildrenToVisit::done : ChildrenToVisit::op1_and_op2;
+    });
+
+    return foundUndefined;
+}
+
+static bool checkEvaluationOrderCpp17(const Token * tok, const Token * tok2, const Token * parent, const Settings & settings, bool & foundUnspecified)
+{
+    if (tok->isAssignmentOp())
+        return false;
+    bool foundUndefined{false};
+    visitAstNodes((parent->astOperand1() != tok2) ? parent->astOperand1() : parent->astOperand2(), [&](const Token *tok3) {
+        if (tok3->str() == "&" && !tok3->astOperand2())
+            return ChildrenToVisit::none; // don't handle address-of for now
+        if (tok3->str() == "(" && Token::simpleMatch(tok3->previous(), "sizeof"))
+            return ChildrenToVisit::none; // don't care about sizeof usage
+        if (isSameExpression(false, tok->astOperand1(), tok3, settings, true, false) && parent->isArithmeticalOp() && parent->isBinaryOp())
+            foundUndefined = true;
+        if (tok3->tokType() == Token::eIncDecOp && isSameExpression(false, tok->astOperand1(), tok3->astOperand1(), settings, true, false)) {
+            if (parent->isArithmeticalOp() && parent->isBinaryOp())
+                foundUndefined = true;
+            else
+                foundUnspecified = true;
+        }
+        return (foundUndefined || foundUnspecified) ? ChildrenToVisit::done : ChildrenToVisit::op1_and_op2;
+    });
+
+    return foundUndefined || foundUnspecified;
+}
 
 void CheckOther::checkEvaluationOrder()
 {
-    // This checker is not written according to C++11 sequencing rules
-    if (mTokenizer->isCPP() && mSettings->standards.cpp >= Standards::CPP11)
-        return;
-
-    logChecker("CheckOther::checkEvaluationOrder"); // C/C++03
-
+    logChecker("CheckOther::checkEvaluationOrder");
     const SymbolDatabase *symbolDatabase = mTokenizer->getSymbolDatabase();
     for (const Scope * functionScope : symbolDatabase->functionScopes) {
         for (const Token* tok = functionScope->bodyStart; tok != functionScope->bodyEnd; tok = tok->next()) {
-            if (tok->tokType() != Token::eIncDecOp && !tok->isAssignmentOp())
+            if (!tok->isIncDecOp() && !tok->isAssignmentOp())
                 continue;
             if (!tok->astOperand1())
                 continue;
@@ -3303,32 +3396,22 @@ void CheckOther::checkEvaluationOrder()
                 if (parent->str() == "(" && parent->astOperand2())
                     break;
 
-                // self assignment..
-                if (tok2 == tok &&
-                    tok->str() == "=" &&
-                    parent->str() == "=" &&
-                    isSameExpression(false, tok->astOperand1(), parent->astOperand1(), *mSettings, true, false)) {
-                    if (mSettings->severity.isEnabled(Severity::warning) &&
-                        isSameExpression(true, tok->astOperand1(), parent->astOperand1(), *mSettings, true, false))
-                        selfAssignmentError(parent, tok->astOperand1()->expressionString());
-                    break;
+                bool foundError{false}, foundUnspecified{false}, bSelfAssignmentError{false};
+                if (mTokenizer->isCPP() && mSettings->standards.cpp >= Standards::CPP11) {
+                    if (mSettings->standards.cpp >= Standards::CPP17)
+                        foundError = checkEvaluationOrderCpp17(tok, tok2, parent, *mSettings, foundUnspecified);
+                    else
+                        foundError = checkEvaluationOrderCpp11(tok, tok2, parent, *mSettings);
                 }
-
-                // Is expression used?
-                bool foundError = false;
-                visitAstNodes((parent->astOperand1() != tok2) ? parent->astOperand1() : parent->astOperand2(),
-                              [&](const Token *tok3) {
-                    if (tok3->str() == "&" && !tok3->astOperand2())
-                        return ChildrenToVisit::none; // don't handle address-of for now
-                    if (tok3->str() == "(" && Token::simpleMatch(tok3->previous(), "sizeof"))
-                        return ChildrenToVisit::none; // don't care about sizeof usage
-                    if (isSameExpression(false, tok->astOperand1(), tok3, *mSettings, true, false))
-                        foundError = true;
-                    return foundError ? ChildrenToVisit::done : ChildrenToVisit::op1_and_op2;
-                });
+                else
+                    foundError = checkEvaluationOrderC(tok, tok2, parent, *mSettings, bSelfAssignmentError);
 
                 if (foundError) {
-                    unknownEvaluationOrder(parent);
+                    unknownEvaluationOrder(parent, foundUnspecified);
+                    break;
+                }
+                if (bSelfAssignmentError) {
+                    selfAssignmentError(parent, tok->astOperand1()->expressionString());
                     break;
                 }
             }
@@ -3336,15 +3419,20 @@ void CheckOther::checkEvaluationOrder()
     }
 }
 
-void CheckOther::unknownEvaluationOrder(const Token* tok)
+void CheckOther::unknownEvaluationOrder(const Token* tok, bool isUnspecifiedBehavior)
 {
-    reportError(tok, Severity::error, "unknownEvaluationOrder",
-                "Expression '" + (tok ? tok->expressionString() : std::string("x = x++;")) + "' depends on order of evaluation of side effects", CWE768, Certainty::normal);
+    isUnspecifiedBehavior ?
+    reportError(tok, Severity::portability, "unknownEvaluationOrder",
+                "Expression '" + (tok ? tok->expressionString() : std::string("x++, x++")) + "' depends on order of evaluation of side effects. Behavior is Unspecified according to c++17", CWE768, Certainty::normal)
+    :   reportError(tok, Severity::error, "unknownEvaluationOrder",
+                    "Expression '" + (tok ? tok->expressionString() : std::string("x = x++;")) + "' depends on order of evaluation of side effects", CWE768, Certainty::normal);
 }
 
 void CheckOther::checkAccessOfMovedVariable()
 {
-    if (!mTokenizer->isCPP() || mSettings->standards.cpp < Standards::CPP11 || !mSettings->severity.isEnabled(Severity::warning))
+    if (!mTokenizer->isCPP() || mSettings->standards.cpp < Standards::CPP11)
+        return;
+    if (!mSettings->isPremiumEnabled("accessMoved") && !mSettings->severity.isEnabled(Severity::warning))
         return;
     logChecker("CheckOther::checkAccessOfMovedVariable"); // c++11,warning
     const bool reportInconclusive = mSettings->certainty.isEnabled(Certainty::inconclusive);

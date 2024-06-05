@@ -96,7 +96,7 @@ void TokenList::determineCppC()
     // only try to determine if it wasn't enforced
     if (mLang == Standards::Language::None) {
         ASSERT_LANG(!getSourceFilePath().empty());
-        mLang = Path::identify(getSourceFilePath());
+        mLang = Path::identify(getSourceFilePath(), mSettings ? mSettings->cppHeaderProbe : false);
         // TODO: cannot enable assert as this might occur for unknown extensions
         //ASSERT_LANG(mLang != Standards::Language::None);
         if (mLang == Standards::Language::None) {
@@ -303,6 +303,7 @@ Token *TokenList::copyTokens(Token *dest, const Token *first, const Token *last,
 
 void TokenList::insertTokens(Token *dest, const Token *src, nonneg int n)
 {
+    // TODO: put the linking in a helper?
     std::stack<Token *> link;
 
     while (n > 0) {
@@ -496,11 +497,11 @@ static bool iscast(const Token *tok, bool cpp)
     if (Token::Match(tok->link(), ") %assign%|,|..."))
         return false;
 
-    if (tok->previous() && tok->previous()->isName() && tok->previous()->str() != "return" &&
+    if (tok->previous() && tok->previous()->isName() && tok->strAt(-1) != "return" &&
         (!cpp || !Token::Match(tok->previous(), "delete|throw")))
         return false;
 
-    if (Token::simpleMatch(tok->previous(), ">") && tok->previous()->link())
+    if (Token::simpleMatch(tok->previous(), ">") && tok->linkAt(-1))
         return false;
 
     if (Token::Match(tok, "( (| typeof (") && Token::Match(tok->link(), ") %num%"))
@@ -547,7 +548,7 @@ static bool iscast(const Token *tok, bool cpp)
         if (!Token::Match(tok2, "%name%|*|::"))
             return false;
 
-        if (tok2->isStandardType() && (tok2->next()->str() != "(" || Token::Match(tok2->next(), "( * *| )")))
+        if (tok2->isStandardType() && (tok2->strAt(1) != "(" || Token::Match(tok2->next(), "( * *| )")))
             type = true;
     }
 
@@ -803,7 +804,7 @@ static void compileTerm(Token *&tok, AST_state& state)
                     repeat = true;
                 }
                 if (Token::simpleMatch(tok->next(), "<") && Token::Match(tok->linkAt(1), "> %name%")) {
-                    tok = tok->next()->link()->next();
+                    tok = tok->linkAt(1)->next();
                     repeat = true;
                 }
             }
@@ -912,7 +913,7 @@ static bool isPrefixUnary(const Token* tok, bool cpp)
             && (tok->previous()->tokType() != Token::eIncDecOp || tok->tokType() == Token::eIncDecOp)))
         return true;
 
-    if (tok->previous()->str() == "}") {
+    if (tok->strAt(-1) == "}") {
         const Token* parent = tok->linkAt(-1)->tokAt(-1);
         return !Token::Match(parent, "%type%") || parent->isKeyword();
     }
@@ -979,9 +980,9 @@ static void compilePrecedence2(Token *&tok, AST_state& state)
                 }
 
                 const bool hasTemplateArg = Token::simpleMatch(squareBracket->link(), "] <") &&
-                                            Token::simpleMatch(squareBracket->link()->next()->link(), "> (");
+                                            Token::simpleMatch(squareBracket->link()->linkAt(1), "> (");
                 if (Token::simpleMatch(squareBracket->link(), "] (") || hasTemplateArg) {
-                    Token* const roundBracket = hasTemplateArg ? squareBracket->link()->next()->link()->next() : squareBracket->link()->next();
+                    Token* const roundBracket = hasTemplateArg ? squareBracket->link()->linkAt(1)->next() : squareBracket->link()->next();
                     Token* curlyBracket = roundBracket->link()->next();
                     while (Token::Match(curlyBracket, "mutable|const|constexpr|consteval"))
                         curlyBracket = curlyBracket->next();
@@ -1025,11 +1026,17 @@ static void compilePrecedence2(Token *&tok, AST_state& state)
             else
                 compileUnaryOp(tok, state, compileExpression);
             tok = tok2->link()->next();
-        } else if (Token::simpleMatch(tok, "( {") && Token::simpleMatch(tok->linkAt(1)->previous(), "; } )") && !Token::Match(tok->previous(), "%name% (")) {
+        } else if (Token::simpleMatch(tok->previous(), "requires {")) {
+            state.op.push(tok);
+            tok = tok->link()->next();
+            continue;
+        } else if (Token::simpleMatch(tok, "( {") && Token::simpleMatch(tok->linkAt(1)->previous(), "; } )") &&
+                   !Token::Match(tok->previous(), "%name% (")) {
             state.op.push(tok->next());
             tok = tok->link()->next();
             continue;
-        } else if (tok->str() == "(" && (!iscast(tok, state.cpp) || Token::Match(tok->previous(), "if|while|for|switch|catch"))) {
+        } else if (tok->str() == "(" &&
+                   (!iscast(tok, state.cpp) || Token::Match(tok->previous(), "if|while|for|switch|catch"))) {
             Token* tok2 = tok;
             tok = tok->next();
             const bool opPrevTopSquare = !state.op.empty() && state.op.top() && state.op.top()->str() == "[";
@@ -1051,7 +1058,8 @@ static void compilePrecedence2(Token *&tok, AST_state& state)
             tok = tok->link()->next();
             if (Token::simpleMatch(tok, "::"))
                 compileBinOp(tok, state, compileTerm);
-        } else if (iscast(tok, state.cpp) && Token::simpleMatch(tok->link(), ") {") && Token::simpleMatch(tok->link()->linkAt(1), "} [")) {
+        } else if (iscast(tok, state.cpp) && Token::simpleMatch(tok->link(), ") {") &&
+                   Token::simpleMatch(tok->link()->linkAt(1), "} [")) {
             Token *cast = tok;
             tok = tok->link()->next();
             Token *tok1 = tok;
@@ -1073,7 +1081,8 @@ static void compilePrecedence2(Token *&tok, AST_state& state)
                 tok = end->next();
             else
                 throw InternalError(tok, "Syntax error. Unexpected tokens in initializer.", InternalError::AST);
-        } else break;
+        } else
+            break;
     }
 }
 
@@ -1588,7 +1597,7 @@ static Token * createAstAtToken(Token *tok)
             compileExpression(tok3, state1);
         }
         Token *init1 = nullptr;
-        Token * const endPar = tok->next()->link();
+        Token * const endPar = tok->linkAt(1);
         if (tok2 == tok->tokAt(2) && Token::Match(tok2, "%op%|(")) {
             init1 = tok2;
             AST_state state1(cpp);
@@ -1873,7 +1882,7 @@ void TokenList::validateAst(bool print) const
         if (Token::Match(tok->previous(), "if|while|for|switch|assert|ASSERT (")) {
             if (!tok->astOperand1() || !tok->astOperand2())
                 throw InternalError(tok,
-                                    "Syntax Error: AST broken, '" + tok->previous()->str() +
+                                    "Syntax Error: AST broken, '" + tok->strAt(-1) +
                                     "' doesn't have two operands.",
                                     InternalError::AST);
         }
@@ -1886,7 +1895,7 @@ void TokenList::validateAst(bool print) const
             }
             if (!tok->next()->astOperand1() || !tok->next()->astOperand2()) {
                 const std::string& op =
-                    tok->next()->originalName().empty() ? tok->next()->str() : tok->next()->originalName();
+                    tok->next()->originalName().empty() ? tok->strAt(1) : tok->next()->originalName();
                 throw InternalError(
                           tok, "Syntax Error: AST broken, '" + op + "' doesn't have two operands.", InternalError::AST);
             }
@@ -1960,7 +1969,7 @@ void TokenList::simplifyPlatformTypes()
         if (tok->str() == "::") {
             tok->deleteThis();
         } else if (tok->str() == "std") {
-            if (tok->next()->str() != "::")
+            if (tok->strAt(1) != "::")
                 continue;
             inStd = true;
             tok->deleteNext();
@@ -2181,10 +2190,13 @@ bool TokenList::isCPP() const
     return mLang == Standards::Language::CPP;
 }
 
-void TokenList::setLang(Standards::Language lang)
+void TokenList::setLang(Standards::Language lang, bool force)
 {
     ASSERT_LANG(lang != Standards::Language::None);
-    ASSERT_LANG(mLang == Standards::Language::None);
+    if (!force)
+    {
+        ASSERT_LANG(mLang == Standards::Language::None);
+    }
 
     mLang = lang;
 }

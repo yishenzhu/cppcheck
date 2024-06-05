@@ -26,6 +26,7 @@
 #include "tokenlist.h"
 #include "utils.h"
 
+#include <cstddef>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -95,7 +96,8 @@ private:
     }
 
 #define tok(...) tok_(__FILE__, __LINE__, __VA_ARGS__)
-    std::string tok_(const char* file, int line, const char code[], Platform::Type type = Platform::Type::Native, bool debugwarnings = true, bool preprocess = false) {
+    template<size_t size>
+    std::string tok_(const char* file, int line, const char (&code)[size], Platform::Type type = Platform::Type::Native, bool debugwarnings = true, bool preprocess = false) {
         const Settings settings = settingsBuilder(settings0).certainty(Certainty::inconclusive).debugwarnings(debugwarnings).platform(type).build();
 
         if (preprocess) {

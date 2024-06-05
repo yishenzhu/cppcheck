@@ -71,6 +71,43 @@ def test_preprocessor_error(tmpdir):
     assert exitcode != 0
 
 
+ANSI_BOLD = "\x1b[1m"
+ANSI_FG_RED = "\x1b[31m"
+ANSI_FG_DEFAULT = "\x1b[39m"
+ANSI_FG_RESET = "\x1b[0m"
+
+
+@pytest.mark.parametrize("env,color_expected", [({"CLICOLOR_FORCE":"1"}, True), ({"NO_COLOR": "1", "CLICOLOR_FORCE":"1"}, False)])
+def test_color_non_tty(tmpdir, env, color_expected):
+    test_file = os.path.join(tmpdir, 'test.c')
+    with open(test_file, 'wt') as f:
+        f.write('#error test\nx=1;\n')
+    exitcode, _, stderr = cppcheck([test_file], env=env)
+
+    assert exitcode == 0
+    assert stderr
+    assert (ANSI_BOLD in stderr) == color_expected
+    assert (ANSI_FG_RED in stderr)  == color_expected
+    assert (ANSI_FG_DEFAULT in stderr) == color_expected
+    assert (ANSI_FG_RESET in stderr) == color_expected
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="TTY not supported in Windows")
+@pytest.mark.parametrize("env,color_expected", [({}, True), ({"NO_COLOR": "1"}, False)])
+def test_color_tty(tmpdir, env, color_expected):
+    test_file = os.path.join(tmpdir, 'test.c')
+    with open(test_file, 'wt') as f:
+        f.write('#error test\nx=1;\n')
+    exitcode, _, stderr = cppcheck([test_file], env=env, tty=True)
+
+    assert exitcode == 0
+    assert stderr
+    assert (ANSI_BOLD in stderr) == color_expected
+    assert (ANSI_FG_RED in stderr) == color_expected
+    assert (ANSI_FG_DEFAULT in stderr) == color_expected
+    assert (ANSI_FG_RESET in stderr) == color_expected
+
+
 def test_invalid_library(tmpdir):
     args = ['--library=none', '--library=posix', '--library=none2', 'file.c']
 
@@ -1428,3 +1465,54 @@ def test_filelist(tmpdir):
     for i in range(1, len(expected)+1):
         lines.remove('{}/11 files checked 0% done'.format(i, len(expected)))
     assert lines == expected
+
+
+def test_markup_lang(tmpdir):
+    test_file_1 = os.path.join(tmpdir, 'test_1.qml')
+    with open(test_file_1, 'wt') as f:
+        pass
+    test_file_2 = os.path.join(tmpdir, 'test_2.cpp')
+    with open(test_file_2, 'wt') as f:
+        pass
+
+    # do not assert processing markup file with enforced language
+    args = [
+        '--library=qt',
+        '--enable=unusedFunction',
+        '--language=c++',
+        '-j1',
+        test_file_1,
+        test_file_2
+    ]
+
+    exitcode, stdout, _ = cppcheck(args)
+    assert exitcode == 0, stdout
+
+
+def test_cpp_probe(tmpdir):
+    test_file = os.path.join(tmpdir, 'test.h')
+    with open(test_file, 'wt') as f:
+        f.writelines([
+            'class A {};'
+        ])
+
+    args = ['-q', '--template=simple', '--cpp-header-probe', '--verbose', test_file]
+    err_lines = [
+        # TODO: fix that awkward format
+        "{}:1:1: error: Code 'classA{{' is invalid C code.: Use --std, -x or --language to enforce C++. Or --cpp-header-probe to identify C++ headers via the Emacs marker. [syntaxError]".format(test_file)
+    ]
+
+    assert_cppcheck(args, ec_exp=0, err_exp=err_lines, out_exp=[])
+
+
+def test_cpp_probe_2(tmpdir):
+    test_file = os.path.join(tmpdir, 'test.h')
+    with open(test_file, 'wt') as f:
+        f.writelines([
+            '// -*- C++ -*-',
+            'class A {};'
+        ])
+
+    args = ['-q', '--template=simple', '--cpp-header-probe', test_file]
+
+    assert_cppcheck(args, ec_exp=0, err_exp=[], out_exp=[])

@@ -182,7 +182,7 @@ static void createDumpFile(const Settings& settings,
     case Standards::Language::None:
     {
         // TODO: error out on unknown language?
-        const Standards::Language lang = Path::identify(filename);
+        const Standards::Language lang = Path::identify(filename, settings.cppHeaderProbe);
         if (lang == Standards::Language::CPP)
             language = " language=\"cpp\"";
         else if (lang == Standards::Language::C)
@@ -420,7 +420,7 @@ unsigned int CppCheck::checkClang(const std::string &path)
         mErrorLogger.reportOut(std::string("Checking ") + path + " ...", Color::FgGreen);
 
     // TODO: this ignores the configured language
-    const bool isCpp = Path::identify(path) == Standards::Language::CPP;
+    const bool isCpp = Path::identify(path, mSettings.cppHeaderProbe) == Standards::Language::CPP;
     const std::string langOpt = isCpp ? "-x c++" : "-x c";
     const std::string analyzerInfo = mSettings.buildDir.empty() ? std::string() : AnalyzerInformation::getAnalyzerInfoFile(mSettings.buildDir, path, emptyString);
     const std::string clangcmd = analyzerInfo + ".clang-cmd";
@@ -643,7 +643,8 @@ unsigned int CppCheck::checkFile(const std::string& filename, const std::string 
             if (mUnusedFunctionsCheck && mSettings.useSingleJob() && mSettings.buildDir.empty()) {
                 // this is not a real source file - we just want to tokenize it. treat it as C anyways as the language needs to be determined.
                 Tokenizer tokenizer(mSettings, *this);
-                tokenizer.list.setLang(Standards::Language::C);
+                // enforce the language since markup files are special and do not adhere to the enforced language
+                tokenizer.list.setLang(Standards::Language::C, true);
                 if (fileStream) {
                     tokenizer.list.createTokens(*fileStream, filename);
                 }
@@ -705,6 +706,7 @@ unsigned int CppCheck::checkFile(const std::string& filename, const std::string 
         }
 
         // Parse comments and then remove them
+        mRemarkComments = preprocessor.getRemarkComments(tokens1);
         preprocessor.inlineSuppressions(tokens1, mSettings.supprs.nomsg);
         if (mSettings.dump || !mSettings.addons.empty()) {
             std::ostringstream oss;
@@ -783,7 +785,7 @@ unsigned int CppCheck::checkFile(const std::string& filename, const std::string 
             TokenList tokenlist(&mSettings);
             std::istringstream istr2(code);
             // TODO: asserts when file has unknown extension
-            tokenlist.createTokens(istr2, Path::identify(*files.begin())); // TODO: check result?
+            tokenlist.createTokens(istr2, Path::identify(*files.begin(), false)); // TODO: check result?
             executeRules("define", tokenlist);
         }
 #endif
@@ -1612,7 +1614,26 @@ void CppCheck::reportErr(const ErrorMessage &msg)
         mExitCode = 1;
     }
 
-    mErrorLogger.reportErr(msg);
+    std::string remark;
+    if (!msg.callStack.empty()) {
+        for (const auto& r: mRemarkComments) {
+            if (r.file != msg.callStack.back().getfile(false))
+                continue;
+            if (r.lineNumber != msg.callStack.back().line)
+                continue;
+            remark = r.str;
+            break;
+        }
+    }
+
+    if (!remark.empty()) {
+        ErrorMessage msg2(msg);
+        msg2.remark = remark;
+        mErrorLogger.reportErr(msg2);
+    } else {
+        mErrorLogger.reportErr(msg);
+    }
+
     // check if plistOutput should be populated and the current output file is open and the error is not suppressed
     if (!mSettings.plistOutput.empty() && mPlistFile.is_open() && !mSettings.supprs.nomsg.isSuppressed(errorMessage)) {
         // add error to plist output file
@@ -1707,8 +1728,8 @@ void CppCheck::analyseClangTidy(const FileSettings &fileSettings)
         const std::string errorString = line.substr(endErrorPos, line.length());
 
         std::string fixedpath = Path::simplifyPath(line.substr(0, endNamePos));
-        const int64_t lineNumber = strToInt<int64_t>(lineNumString);
-        const int64_t column = strToInt<int64_t>(columnNumString);
+        const auto lineNumber = strToInt<int64_t>(lineNumString);
+        const auto column = strToInt<int64_t>(columnNumString);
         fixedpath = Path::toNativeSeparators(std::move(fixedpath));
 
         ErrorMessage errmsg;

@@ -184,7 +184,7 @@ bool CmdLineParser::fillSettingsFromArgs(int argc, const char* const argv[])
     // Output a warning for the user if he tries to exclude headers
     const std::vector<std::string>& ignored = getIgnoredPaths();
     const bool warn = std::any_of(ignored.cbegin(), ignored.cend(), [](const std::string& i) {
-        return Path::isHeader2(i);
+        return Path::isHeader(i);
     });
     if (warn) {
         mLogger.printMessage("filename exclusion does not apply to header (.h and .hpp) files.");
@@ -544,6 +544,10 @@ CmdLineParser::Result CmdLineParser::parseFromArgs(int argc, const char* const a
                 }
             }
 
+            else if (std::strcmp(argv[i], "--cpp-header-probe") == 0) {
+                mSettings.cppHeaderProbe = true;
+            }
+
             // Show --debug output after the first simplifications
             else if (std::strcmp(argv[i], "--debug") == 0 ||
                      std::strcmp(argv[i], "--debug-normal") == 0)
@@ -887,6 +891,10 @@ CmdLineParser::Result CmdLineParser::parseFromArgs(int argc, const char* const a
                     return Result::Fail;
             }
 
+            else if (std::strcmp(argv[i], "--no-cpp-header-probe") == 0) {
+                mSettings.cppHeaderProbe = false;
+            }
+
             // Write results in file
             else if (std::strncmp(argv[i], "--output-file=", 14) == 0)
                 mSettings.outputFile = Path::simplifyPath(Path::fromNativeSeparators(argv[i] + 14));
@@ -894,12 +902,12 @@ CmdLineParser::Result CmdLineParser::parseFromArgs(int argc, const char* const a
             // Experimental: limit execution time for extended valueflow analysis. basic valueflow analysis
             // is always executed.
             else if (std::strncmp(argv[i], "--performance-valueflow-max-time=", 33) == 0) {
-                if (!parseNumberArg(argv[i], 33, mSettings.performanceValueFlowMaxTime, true))
+                if (!parseNumberArg(argv[i], 33, mSettings.vfOptions.maxTime, true))
                     return Result::Fail;
             }
 
             else if (std::strncmp(argv[i], "--performance-valueflow-max-if-count=", 37) == 0) {
-                if (!parseNumberArg(argv[i], 37, mSettings.performanceValueFlowMaxIfCount, true))
+                if (!parseNumberArg(argv[i], 37, mSettings.vfOptions.maxIfCount, true))
                     return Result::Fail;
             }
 
@@ -1323,7 +1331,7 @@ CmdLineParser::Result CmdLineParser::parseFromArgs(int argc, const char* const a
             }
 
             else if (std::strncmp(argv[i], "--valueflow-max-iterations=", 27) == 0) {
-                if (!parseNumberArg(argv[i], 27, mSettings.valueFlowMaxIterations))
+                if (!parseNumberArg(argv[i], 27, mSettings.vfOptions.maxIterations))
                     return Result::Fail;
             }
 
@@ -1638,6 +1646,7 @@ void CmdLineParser::printHelp() const
             "                          * misra-c-2012      Misra C 2012\n"
             "                          * misra-c-2023      Misra C 2023\n"
             "                          * misra-c++-2008    Misra C++ 2008\n"
+            "                          * misra-c++-2023    Misra C++ 2023\n"
             "                         Other:\n"
             "                          * bughunting        Soundy analysis\n"
             "                          * cert-c-int-precision=BITS  Integer precision to use in Cert C analysis.\n"

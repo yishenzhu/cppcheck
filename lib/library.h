@@ -50,11 +50,7 @@ namespace tinyxml2 {
  * @brief Library definitions handling
  */
 class CPPCHECKLIB Library {
-    // TODO: get rid of this
-    friend class TestSymbolDatabase; // For testing only
-    friend class TestSingleExecutorBase; // For testing only
-    friend class TestThreadExecutorBase; // For testing only
-    friend class TestProcessExecutorBase; // For testing only
+    friend struct LibraryHelper; // for testing
 
 public:
     Library() = default;
@@ -76,7 +72,6 @@ public:
     };
 
     Error load(const char exename[], const char path[]);
-    Error load(const tinyxml2::XMLDocument &doc);
 
     struct AllocFunc {
         int groupId;
@@ -109,30 +104,19 @@ public:
 
     // TODO: get rid of this
     /** get allocation info for function by name (deprecated, use other alloc) */
-    const AllocFunc* getAllocFuncInfo(const char name[]) const {
-        return getAllocDealloc(mAlloc, name);
-    }
+    const AllocFunc* getAllocFuncInfo(const char name[]) const;
 
     // TODO: get rid of this
     /** get deallocation info for function by name (deprecated, use other alloc) */
-    const AllocFunc* getDeallocFuncInfo(const char name[]) const {
-        return getAllocDealloc(mDealloc, name);
-    }
+    const AllocFunc* getDeallocFuncInfo(const char name[]) const;
 
     // TODO: get rid of this
     /** get allocation id for function by name (deprecated, use other alloc) */
-    // cppcheck-suppress unusedFunction
-    int allocId(const char name[]) const {
-        const AllocFunc* af = getAllocDealloc(mAlloc, name);
-        return af ? af->groupId : 0;
-    }
+    int allocId(const char name[]) const;
 
     // TODO: get rid of this
     /** get deallocation id for function by name (deprecated, use other alloc) */
-    int deallocId(const char name[]) const {
-        const AllocFunc* af = getAllocDealloc(mDealloc, name);
-        return af ? af->groupId : 0;
-    }
+    int deallocId(const char name[]) const;
 
     static bool isCompliantValidationExpression(const char* p);
 
@@ -267,7 +251,7 @@ public:
         static Yield yieldFrom(const std::string& yieldName);
         static Action actionFrom(const std::string& actionName);
     };
-    std::unordered_map<std::string, Container> containers;
+    const std::unordered_map<std::string, Container>& containers() const;
     const Container* detectContainer(const Token* typeStart) const;
     const Container* detectIterator(const Token* typeStart) const;
     const Container* detectContainerOrIterator(const Token* typeStart, bool* isIterator = nullptr, bool withoutStd = false) const;
@@ -327,7 +311,7 @@ public:
     };
 
     const Function *getFunction(const Token *ftok) const;
-    std::unordered_map<std::string, Function> functions;
+    const std::unordered_map<std::string, Function>& functions() const;
     bool isUse(const std::string& functionName) const;
     bool isLeakIgnore(const std::string& functionName) const;
     bool isFunctionConst(const std::string& functionName, bool pure) const;
@@ -377,9 +361,7 @@ public:
 
     bool processMarkupAfterCode(const std::string &path) const;
 
-    const std::set<std::string> &markupExtensions() const {
-        return mMarkupExtensions;
-    }
+    const std::set<std::string> &markupExtensions() const;
 
     bool reportErrors(const std::string &path) const;
 
@@ -394,39 +376,25 @@ public:
 
     bool iskeyword(const std::string &file, const std::string &keyword) const;
 
-    bool isexporter(const std::string &prefix) const {
-        return mExporters.find(prefix) != mExporters.end();
-    }
+    bool isexporter(const std::string &prefix) const;
 
-    bool isexportedprefix(const std::string &prefix, const std::string &token) const {
-        const std::map<std::string, ExportedFunctions>::const_iterator it = mExporters.find(prefix);
-        return (it != mExporters.end() && it->second.isPrefix(token));
-    }
+    bool isexportedprefix(const std::string &prefix, const std::string &token) const;
 
-    bool isexportedsuffix(const std::string &prefix, const std::string &token) const {
-        const std::map<std::string, ExportedFunctions>::const_iterator it = mExporters.find(prefix);
-        return (it != mExporters.end() && it->second.isSuffix(token));
-    }
+    bool isexportedsuffix(const std::string &prefix, const std::string &token) const;
 
     bool isimporter(const std::string& file, const std::string &importer) const;
 
     const Token* getContainerFromYield(const Token* tok, Container::Yield yield) const;
     const Token* getContainerFromAction(const Token* tok, Container::Action action) const;
 
-    bool isreflection(const std::string &token) const {
-        return mReflection.find(token) != mReflection.end();
-    }
+    static bool isContainerYield(const Token* const cond, Library::Container::Yield y, const std::string& fallback = emptyString);
+    static Library::Container::Yield getContainerYield(const Token* const cond);
 
-    int reflectionArgument(const std::string &token) const {
-        const std::map<std::string, int>::const_iterator it = mReflection.find(token);
-        if (it != mReflection.end())
-            return it->second;
-        return -1;
-    }
+    bool isreflection(const std::string &token) const;
 
-    bool isentrypoint(const std::string &func) const {
-        return func == "main" || mEntrypoints.find(func) != mEntrypoints.end();
-    }
+    int reflectionArgument(const std::string &token) const;
+
+    bool isentrypoint(const std::string &func) const;
 
     std::set<std::string> defines; // to provide some library defines
 
@@ -435,7 +403,7 @@ public:
         bool unique = false;
     };
 
-    std::unordered_map<std::string, SmartPointer> smartPointers;
+    const std::unordered_map<std::string, SmartPointer>& smartPointers() const;
     bool isSmartPointer(const Token *tok) const;
     const SmartPointer* detectSmartPointer(const Token* tok, bool withoutStd = false) const;
 
@@ -444,10 +412,7 @@ public:
         char sign;
         enum class Type { NO, BOOL, CHAR, SHORT, INT, LONG, LONGLONG } stdtype;
     };
-    const PodType *podtype(const std::string &name) const {
-        const std::unordered_map<std::string, PodType>::const_iterator it = mPodTypes.find(name);
-        return (it != mPodTypes.end()) ? &(it->second) : nullptr;
-    }
+    const PodType *podtype(const std::string &name) const;
 
     struct PlatformType {
         bool operator == (const PlatformType & type) const {
@@ -479,24 +444,12 @@ public:
         std::map<std::string, PlatformType> mPlatformTypes;
     };
 
-    const PlatformType *platform_type(const std::string &name, const std::string & platform) const {
-        const std::map<std::string, Platform>::const_iterator it = mPlatforms.find(platform);
-        if (it != mPlatforms.end()) {
-            const PlatformType * const type = it->second.platform_type(name);
-            if (type)
-                return type;
-        }
-
-        const std::map<std::string, PlatformType>::const_iterator it2 = mPlatformTypes.find(name);
-        return (it2 != mPlatformTypes.end()) ? &(it2->second) : nullptr;
-    }
+    const PlatformType *platform_type(const std::string &name, const std::string & platform) const;
 
     /**
      * Get function name for function call
      */
     std::string getFunctionName(const Token *ftok) const;
-
-    static bool isContainerYield(const Token * const cond, Library::Container::Yield y, const std::string& fallback=emptyString);
 
     /** Suppress/check a type */
     enum class TypeCheck { def,
@@ -508,6 +461,8 @@ public:
     bool hasAnyTypeCheck(const std::string& typeName) const;
 
 private:
+    Error load(const tinyxml2::XMLDocument &doc);
+
     // load a <function> xml node
     Error loadFunction(const tinyxml2::XMLElement * const node, const std::string &name, std::set<std::string> &unknown_elements);
 
@@ -565,6 +520,9 @@ private:
         int mOffset{};
         std::set<std::string> mBlocks;
     };
+    std::unordered_map<std::string, Container> mContainers;
+    std::unordered_map<std::string, Function> mFunctions;
+    std::unordered_map<std::string, SmartPointer> mSmartPointers;
     enum class FalseTrueMaybe { False, True, Maybe };
     int mAllocId{};
     std::set<std::string> mFiles;

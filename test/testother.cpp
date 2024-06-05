@@ -25,6 +25,7 @@
 #include "standards.h"
 #include "tokenize.h"
 
+#include <cstddef>
 #include <string>
 #include <vector>
 
@@ -294,7 +295,8 @@ private:
     }
 
 #define check(...) check_(__FILE__, __LINE__, __VA_ARGS__)
-    void check_(const char* file, int line, const char code[], bool cpp = true, bool inconclusive = true, bool runSimpleChecks=true, bool verbose=false, Settings* settings = nullptr) {
+    template<size_t size>
+    void check_(const char* file, int line, const char (&code)[size], bool cpp = true, bool inconclusive = true, bool runSimpleChecks=true, bool verbose=false, Settings* settings = nullptr) {
         if (!settings) {
             settings = &_settings;
         }
@@ -317,12 +319,14 @@ private:
         (void)runSimpleChecks; // TODO Remove this
     }
 
-    void check_(const char* file, int line, const char code[], Settings *s) {
+    template<size_t size>
+    void check_(const char* file, int line, const char (&code)[size], Settings *s) {
         check_(file, line, code, true, true, true, false, s);
     }
 
 #define checkP(...) checkP_(__FILE__, __LINE__, __VA_ARGS__)
-    void checkP_(const char* file, int line, const char code[], const char *filename = "test.cpp") {
+    template<size_t size>
+    void checkP_(const char* file, int line, const char (&code)[size], const char *filename = "test.cpp") {
         Settings* settings = &_settings;
         settings->severity.enable(Severity::style);
         settings->severity.enable(Severity::warning);
@@ -343,7 +347,8 @@ private:
         runChecks<CheckOther>(tokenizer, this);
     }
 
-    void checkInterlockedDecrement(const char code[]) {
+    template<size_t size>
+    void checkInterlockedDecrement(const char (&code)[size]) {
         /*const*/ Settings settings = settingsBuilder().platform(Platform::Type::Win32A).build();
 
         check(code, true, false, true, false, &settings);
@@ -1748,7 +1753,8 @@ private:
     }
 
 #define checkOldStylePointerCast(code) checkOldStylePointerCast_(code, __FILE__, __LINE__)
-    void checkOldStylePointerCast_(const char code[], const char* file, int line) {
+    template<size_t size>
+    void checkOldStylePointerCast_(const char (&code)[size], const char* file, int line) {
         // #5560 - set c++03
         const Settings settings = settingsBuilder().severity(Severity::style).cpp(Standards::CPP03).build();
 
@@ -1967,7 +1973,8 @@ private:
     }
 
 #define checkInvalidPointerCast(...) checkInvalidPointerCast_(__FILE__, __LINE__, __VA_ARGS__)
-    void checkInvalidPointerCast_(const char* file, int line, const char code[], bool portability = true, bool inconclusive = false) {
+    template<size_t size>
+    void checkInvalidPointerCast_(const char* file, int line, const char (&code)[size], bool portability = true, bool inconclusive = false) {
         /*const*/ Settings settings = settingsBuilder().severity(Severity::warning).severity(Severity::portability, portability).certainty(Certainty::inconclusive, inconclusive).build();
         settings.platform.defaultSign = 's';
 
@@ -3606,6 +3613,16 @@ private:
               "    });\n"
               "}\n");
         ASSERT_EQUALS("[test.cpp:2]: (style) Parameter 's' can be declared as reference to const\n", errout_str());
+
+        check("struct S {\n" // #12762
+              "    std::vector<int> m;\n"
+              "    void f();\n"
+              "};\n"
+              "void S::f() {\n"
+              "    std::vector<int>& r = m;\n"
+              "    g(r[0] * 2);\n"
+              "}\n");
+        ASSERT_EQUALS("[test.cpp:6]: (style) Variable 'r' can be declared as reference to const\n", errout_str());
     }
 
     void constParameterCallback() {
@@ -8864,16 +8881,16 @@ private:
         ASSERT_EQUALS("", errout_str());
 
         // #5618
-        const char* code5618 = "class Token {\n"
-                               "public:\n"
-                               "    const std::string& str();\n"
-                               "};\n"
-                               "void simplifyArrayAccessSyntax() {\n"
-                               "    for (Token *tok = list.front(); tok; tok = tok->next()) {\n"
-                               "        const std::string temp = tok->str();\n"
-                               "        tok->str(tok->strAt(2));\n"
-                               "    }\n"
-                               "}";
+        const char code5618[] = "class Token {\n"
+                                "public:\n"
+                                "    const std::string& str();\n"
+                                "};\n"
+                                "void simplifyArrayAccessSyntax() {\n"
+                                "    for (Token *tok = list.front(); tok; tok = tok->next()) {\n"
+                                "        const std::string temp = tok->str();\n"
+                                "        tok->str(tok->strAt(2));\n"
+                                "    }\n"
+                                "}";
         check(code5618, true, true);
         ASSERT_EQUALS("", errout_str());
         check(code5618, true, false);
@@ -8969,6 +8986,45 @@ private:
               "    if (a.x > a.y) {}\n"
               "}\n");
         ASSERT_EQUALS("", errout_str());
+
+        check("struct S {\n" // #12740
+              "    const std::string & get() const { return m; }\n"
+              "    void set(const std::string& v) { m = v; }\n"
+              "    std::string m;\n"
+              "};\n"
+              "struct T {\n"
+              "    void f();\n"
+              "    S* s;\n"
+              "};\n"
+              "void T::f() {\n"
+              "    const std::string o = s->get();\n"
+              "    s->set(\"abc\");\n"
+              "    s->set(o);\n"
+              "}\n");
+        ASSERT_EQUALS("", errout_str());
+
+        check("struct S {\n" // #12196
+              "    std::string s;\n"
+              "    const std::string& get() const { return s; }\n"
+              "};\n"
+              "struct T {\n"
+              "    S* m;\n"
+              "    void f();\n"
+              "};\n"
+              "struct U {\n"
+              "    explicit U(S* p);\n"
+              "    void g();\n"
+              "    S* n;\n"
+              "};\n"
+              "void T::f() {\n"
+              "    U u(m);\n"
+              "    const std::string c = m->get();\n"
+              "    u.g();\n"
+              "    if (c == m->get()) {}\n"
+              "}\n");
+        TODO_ASSERT_EQUALS("",
+                           "[test.cpp:16] -> [test.cpp:18]: (style) The comparison 'c == m->get()' is always true because 'c' and 'm->get()' represent the same value.\n",
+                           errout_str());
     }
 
     void checkNegativeShift() {
@@ -10799,6 +10855,28 @@ private:
         ASSERT_EQUALS("[test.cpp:6]: (style) Label 'label' is not used.\n", errout_str());
     }
 
+    #define checkCustomSettings(...) checkCustomSettings_(__FILE__, __LINE__, __VA_ARGS__)
+    void checkCustomSettings_(const char* file, int line, const char code[], bool cpp = true, bool inconclusive = true, bool runSimpleChecks=true, bool verbose=false, Settings* settings = nullptr) {
+        if (!settings) {
+            settings = &_settings;
+        }
+        settings->certainty.setEnabled(Certainty::inconclusive, inconclusive);
+        settings->verbose = verbose;
+
+        // Tokenize..
+        SimpleTokenizer tokenizer(*settings, *this);
+        ASSERT_LOC(tokenizer.tokenize(code, cpp), file, line);
+
+        // Check..
+        runChecks<CheckOther>(tokenizer, this);
+
+        (void)runSimpleChecks; // TODO Remove this
+    }
+
+    void checkCustomSettings_(const char* file, int line, const char code[], Settings *s) {
+        checkCustomSettings_(file, line, code, true, true, true, false, s);
+    }
+
     void testEvaluationOrder() {
         check("void f() {\n"
               "  int x = dostuff();\n"
@@ -10842,6 +10920,29 @@ private:
               "  a[x+y] = a[y+x]++;;\n"
               "}\n", false);
         ASSERT_EQUALS("[test.c:3]: (error) Expression 'a[x+y]=a[y+x]++' depends on order of evaluation of side effects\n", errout_str());
+
+        check("void f(int i) {\n"
+              "  int n = ++i + i;\n"
+              "}");
+        ASSERT_EQUALS("[test.cpp:2]: (error) Expression '++i+i' depends on order of evaluation of side effects\n", errout_str());
+
+        check("long int f1(const char *exp) {\n"
+              "  return dostuff(++exp, ++exp, 10);\n"
+              "}");
+        ASSERT_EQUALS("[test.cpp:2]: (portability) Expression '++exp,++exp' depends on order of evaluation of side effects. Behavior is Unspecified according to c++17\n"
+                      "[test.cpp:2]: (portability) Expression '++exp,++exp' depends on order of evaluation of side effects. Behavior is Unspecified according to c++17\n", errout_str());
+
+        check("void f(int i) {\n"
+              "  int n = (~(-(++i)) + i);\n"
+              "}");
+        ASSERT_EQUALS("[test.cpp:2]: (error) Expression '~(-(++i))+i' depends on order of evaluation of side effects\n", errout_str());
+
+        /*const*/ Settings settings11 = settingsBuilder(_settings).cpp(Standards::CPP11).build();
+
+        checkCustomSettings("void f(int i) {\n"
+                            "  i = i++ + 2;\n"
+                            "}", &settings11);
+        ASSERT_EQUALS("[test.cpp:2]: (error) Expression 'i+++2' depends on order of evaluation of side effects\n", errout_str());
     }
 
     void testEvaluationOrderSelfAssignment() {

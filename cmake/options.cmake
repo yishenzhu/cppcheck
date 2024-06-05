@@ -22,19 +22,23 @@ option(WARNINGS_ARE_ERRORS  "Treat warnings as errors"                          
 option(EXTERNALS_AS_SYSTEM  "Treat externals as system includes"                            OFF)
 
 set(USE_MATCHCOMPILER "Auto" CACHE STRING "Usage of match compiler")
-set(_MATCHCOMPILER_STRINGS Auto Off On Verify)
-set_property(CACHE USE_MATCHCOMPILER PROPERTY STRINGS ${_MATCHCOMPILER_STRINGS})
-if(NOT ${USE_MATCHCOMPILER} IN_LIST _MATCHCOMPILER_STRINGS)
-    message(FATAL_ERROR "Invalid USE_MATCHCOMPILER value '${USE_MATCHCOMPILER}'")
-endif()
-if(USE_MATCHCOMPILER STREQUAL "Auto")
-    if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
-        set(USE_MATCHCOMPILER_OPT "On")
+set_property(CACHE USE_MATCHCOMPILER PROPERTY STRINGS Auto Off On Verify)
+if(USE_MATCHCOMPILER)
+    if(USE_MATCHCOMPILER STREQUAL "Auto")
+        if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
+            message(STATUS "Non-debug build detected - enabling matchcompiler")
+            set(USE_MATCHCOMPILER_OPT "On")
+        else()
+            message(STATUS "Debug build detected - disabling matchcompiler")
+            set(USE_MATCHCOMPILER_OPT "Off")
+        endif()
+    elseif(USE_MATCHCOMPILER STREQUAL "Verify")
+        set(USE_MATCHCOMPILER_OPT "Verify")
     else()
-        set(USE_MATCHCOMPILER_OPT "Off")
+        set(USE_MATCHCOMPILER_OPT "On")
     endif()
 else()
-    set(USE_MATCHCOMPILER_OPT ${USE_MATCHCOMPILER})
+    set(USE_MATCHCOMPILER_OPT "Off")
 endif()
 
 option(BUILD_CORE_DLL       "Build lib as cppcheck-core.dll with Visual Studio"             OFF)
@@ -71,6 +75,9 @@ option(NO_UNIX_SIGNAL_HANDLING "Disable usage of Unix Signal Handling"          
 option(NO_UNIX_BACKTRACE_SUPPORT "Disable usage of Unix Backtrace support"                  OFF)
 option(NO_WINDOWS_SEH       "Disable usage of Windows SEH"                                  OFF)
 
+# TODO: disable by default like make build?
+option(FILESDIR "Hard-coded directory for files to load from"                               OFF)
+
 if(CMAKE_VERSION VERSION_EQUAL "3.16" OR CMAKE_VERSION VERSION_GREATER "3.16")
     set(CMAKE_DISABLE_PRECOMPILE_HEADERS Off CACHE BOOL "Disable precompiled headers")
     # need to disable the prologue or it will be treated like a system header and not emit any warnings
@@ -91,5 +98,11 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
 
-set(FILESDIR                       ${CMAKE_INSTALL_PREFIX}/share/${PROJECT_NAME} CACHE STRING "Cppcheck files directory")
-
+string(LENGTH "${FILESDIR}" _filesdir_len)
+# override FILESDIR if it is set or empty
+if(FILESDIR OR ${_filesdir_len} EQUAL 0)
+# TODO: verify that it is an abolute path?
+    set(FILESDIR_DEF                   ${FILESDIR})
+else()
+    set(FILESDIR_DEF                   ${CMAKE_INSTALL_PREFIX}/share/${PROJECT_NAME} CACHE STRING "Cppcheck files directory")
+endif()

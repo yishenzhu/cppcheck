@@ -74,7 +74,8 @@ private:
         typetok = nullptr;
     }
 
-    static const SymbolDatabase* getSymbolDB_inner(SimpleTokenizer& tokenizer, const char* code, bool cpp) {
+    template<size_t size>
+    static const SymbolDatabase* getSymbolDB_inner(SimpleTokenizer& tokenizer, const char (&code)[size], bool cpp) {
         return tokenizer.tokenize(code, cpp) ? tokenizer.getSymbolDatabase() : nullptr;
     }
 
@@ -93,7 +94,8 @@ private:
         return tok->expressionString() + "@" + std::to_string(tok->exprId());
     }
 
-    std::string testExprIdEqual(const char code[],
+    template<size_t size>
+    std::string testExprIdEqual(const char (&code)[size],
                                 const std::string& expr1,
                                 unsigned int exprline1,
                                 const std::string& expr2,
@@ -120,7 +122,8 @@ private:
 
         return "";
     }
-    bool testExprIdNotEqual(const char code[],
+    template<size_t size>
+    bool testExprIdNotEqual(const char (&code)[size],
                             const std::string& expr1,
                             unsigned int exprline1,
                             const std::string& expr2,
@@ -427,6 +430,7 @@ private:
         TEST_CASE(createSymbolDatabaseFindAllScopes5);
         TEST_CASE(createSymbolDatabaseFindAllScopes6);
         TEST_CASE(createSymbolDatabaseFindAllScopes7);
+        TEST_CASE(createSymbolDatabaseFindAllScopes8); // #12761
 
         TEST_CASE(createSymbolDatabaseIncompleteVars);
 
@@ -2162,7 +2166,7 @@ private:
 
         bool seen_something = false;
         for (const Scope & scope : db->scopeList) {
-            for (std::list<Function>::const_iterator func = scope.functionList.cbegin(); func != scope.functionList.cend(); ++func) {
+            for (auto func = scope.functionList.cbegin(); func != scope.functionList.cend(); ++func) {
                 ASSERT_EQUALS("Sub", func->token->str());
                 ASSERT_EQUALS(true, func->hasBody());
                 ASSERT_EQUALS(Function::eConstructor, func->type);
@@ -2305,7 +2309,7 @@ private:
         ASSERT(!foo->hasBody());
 
         const Token*parenthesis = foo->tokenDef->next();
-        ASSERT(parenthesis->str() == "(" && parenthesis->previous()->str() == "foo");
+        ASSERT(parenthesis->str() == "(" && parenthesis->strAt(-1) == "foo");
         ASSERT(parenthesis->valueType()->type == ValueType::Type::CONTAINER);
     }
 
@@ -2578,7 +2582,8 @@ private:
     }
 
 #define check(...) check_(__FILE__, __LINE__, __VA_ARGS__)
-    void check_(const char* file, int line, const char code[], bool debug = true, bool cpp = true, const Settings* pSettings = nullptr) {
+    template<size_t size>
+    void check_(const char* file, int line, const char (&code)[size], bool debug = true, bool cpp = true, const Settings* pSettings = nullptr) {
         // Check..
         const Settings settings = settingsBuilder(pSettings ? *pSettings : settings1).debugwarnings(debug).build();
 
@@ -2799,7 +2804,7 @@ private:
                       "Fred::Fred(Whitespace whitespace) { }");
         ASSERT_EQUALS(true, db != nullptr);
         ASSERT_EQUALS(3, db->scopeList.size());
-        std::list<Scope>::const_iterator scope = db->scopeList.cbegin();
+        auto scope = db->scopeList.cbegin();
         ++scope;
         ASSERT_EQUALS((unsigned int)Scope::eClass, (unsigned int)scope->type);
         ASSERT_EQUALS(1, scope->functionList.size());
@@ -2817,7 +2822,7 @@ private:
                       "void Fred::foo(char b[16]) { }");
         ASSERT_EQUALS(true, db != nullptr);
         ASSERT_EQUALS(3, db->scopeList.size());
-        std::list<Scope>::const_iterator scope = db->scopeList.cbegin();
+        auto scope = db->scopeList.cbegin();
         ++scope;
         ASSERT_EQUALS((unsigned int)Scope::eClass, (unsigned int)scope->type);
         ASSERT_EQUALS(1, scope->functionList.size());
@@ -3528,7 +3533,7 @@ private:
                       "class Sub;");
         ASSERT(db && db->typeList.size() == 5);
 
-        std::list<Type>::const_iterator i = db->typeList.cbegin();
+        auto i = db->typeList.cbegin();
         const Type* Foo = &(*i++);
         const Type* Bar = &(*i++);
         const Type* Sub = &(*i++);
@@ -3596,7 +3601,7 @@ private:
                       "};");
         ASSERT(db && db->typeList.size() == 3);
 
-        std::list<Type>::const_iterator i = db->typeList.cbegin();
+        auto i = db->typeList.cbegin();
         const Type* Fred = &(*i++);
         const Type* Wilma = &(*i++);
         const Type* Barney = &(*i++);
@@ -3685,7 +3690,7 @@ private:
             ASSERT(db->getVariableFromVarId(i) != nullptr);
 
         ASSERT_EQUALS(4U, db->scopeList.size());
-        std::list<Scope>::const_iterator scope = db->scopeList.cbegin();
+        auto scope = db->scopeList.cbegin();
         ASSERT_EQUALS(Scope::eGlobal, scope->type);
         ++scope;
         ASSERT_EQUALS(Scope::eStruct, scope->type);
@@ -3703,7 +3708,7 @@ private:
 
         ASSERT(db != nullptr);
         ASSERT_EQUALS(4U, db->scopeList.size());
-        std::list<Scope>::const_iterator scope = db->scopeList.cbegin();
+        auto scope = db->scopeList.cbegin();
         ASSERT_EQUALS(Scope::eGlobal, scope->type);
         ++scope;
         ASSERT_EQUALS(Scope::eStruct, scope->type);
@@ -3893,7 +3898,7 @@ private:
                       "}");
         ASSERT(db != nullptr);
         ASSERT(db->scopeList.size() == 4U);
-        std::list<Scope>::const_iterator it = db->scopeList.cbegin();
+        auto it = db->scopeList.cbegin();
         ASSERT(it->type == Scope::eGlobal);
         ASSERT((++it)->type == Scope::eFunction);
         ASSERT((++it)->type == Scope::eIf);
@@ -3913,7 +3918,7 @@ private:
                       "};");
         ASSERT(db != nullptr);
         ASSERT(db->typeList.size() == 3U);
-        std::list<Type>::const_iterator it = db->typeList.cbegin();
+        auto it = db->typeList.cbegin();
         const Type * classB = &(*it);
         const Type * classC = &(*(++it));
         const Type * classA = &(*(++it));
@@ -5607,7 +5612,7 @@ private:
                       "static const int foo = 8;\n"
                       "}\n");
         ASSERT(db);
-        ASSERT_EQUALS(6, db->scopeList.size());
+        ASSERT_EQUALS(9, db->scopeList.size());
         ASSERT_EQUALS(1, db->scopeList.front().varlist.size());
         auto list = db->scopeList;
         list.pop_front();
@@ -5654,12 +5659,12 @@ private:
                       "};\n"
                       "const S S::IN(1);\n");
         ASSERT(db);
-        ASSERT_EQUALS(6, db->scopeList.size());
+        ASSERT_EQUALS(7, db->scopeList.size());
         const Token* const var = Token::findsimplematch(tokenizer.tokens(), "IN (");
         ASSERT(var && var->variable());
         ASSERT_EQUALS(var->variable()->name(), "IN");
-        auto it = db->scopeList.begin();
-        std::advance(it, 4);
+        auto it = db->scopeList.cbegin();
+        std::advance(it, 5);
         ASSERT_EQUALS(it->className, "S");
         ASSERT_EQUALS(var->variable()->scope(), &*it);
     }
@@ -5748,6 +5753,39 @@ private:
             ASSERT(db); // don't crash
             ASSERT_EQUALS("", errout_str());
         }
+    }
+
+    void createSymbolDatabaseFindAllScopes8() // #12761
+    {
+        // There are 2 myst constructors. They should belong to different scopes.
+        GET_SYMBOL_DB("template <class A = void, class B = void, class C = void>\n"
+                      "class Test {\n"
+                      "private:\n"
+                      "  template <class T>\n"
+                      "  struct myst {\n"
+                      "    T* x;\n"
+                      "    myst(T* y) : x(y){};\n"  // <- myst constructor
+                      "  };\n"
+                      "};\n"
+                      "\n"
+                      "template <class A, class B> class Test<A, B, void> {};\n"
+                      "\n"
+                      "template <>\n"
+                      "class Test<void, void, void> {\n"
+                      "private:\n"
+                      "  template <class T>\n"
+                      "  struct myst {\n"
+                      "    T* x;\n"
+                      "    myst(T* y) : x(y){};\n"  // <- myst constructor
+                      "  };\n"
+                      "};");
+        ASSERT(db);
+
+        const Token* myst1 = Token::findsimplematch(tokenizer.tokens(), "myst ( T * y )");
+        const Token* myst2 = Token::findsimplematch(myst1->next(), "myst ( T * y )");
+        ASSERT(myst1);
+        ASSERT(myst2);
+        ASSERT(myst1->scope() != myst2->scope());
     }
 
     void createSymbolDatabaseIncompleteVars()
@@ -5900,7 +5938,7 @@ private:
         ASSERT_EQUALS(3U, db->scopeList.size());
 
         // Assert that all enum values are known
-        std::list<Scope>::const_iterator scope = db->scopeList.cbegin();
+        auto scope = db->scopeList.cbegin();
 
         // Offsets
         ++scope;
@@ -5988,7 +6026,7 @@ private:
         ASSERT_EQUALS(2U, db->scopeList.size());
 
         // Assert that all enum values are known
-        std::list<Scope>::const_iterator scope = db->scopeList.cbegin();
+        auto scope = db->scopeList.cbegin();
 
         ++scope;
         ASSERT_EQUALS((unsigned int)Scope::eEnum, (unsigned int)scope->type);
@@ -6536,7 +6574,7 @@ private:
                       "    void g();\n"
                       "};");
         ASSERT(db && db->scopeList.back().functionList.size() == 4);
-        std::list<Function>::const_iterator it = db->scopeList.back().functionList.cbegin();
+        auto it = db->scopeList.back().functionList.cbegin();
         ASSERT((it++)->isPure());
         ASSERT((it++)->isPure());
         ASSERT(!(it++)->isPure());
@@ -8589,7 +8627,7 @@ private:
                       "}");
 
         ASSERT(db && db->scopeList.size() == 3);
-        std::list<Scope>::const_iterator scope = db->scopeList.cbegin();
+        auto scope = db->scopeList.cbegin();
         ASSERT_EQUALS(Scope::eGlobal, scope->type);
         ++scope;
         ASSERT_EQUALS(Scope::eFunction, scope->type);
@@ -8608,7 +8646,7 @@ private:
                       "}");
 
         ASSERT(db && db->scopeList.size() == 3);
-        std::list<Scope>::const_iterator scope = db->scopeList.cbegin();
+        auto scope = db->scopeList.cbegin();
         ASSERT_EQUALS(Scope::eGlobal, scope->type);
         ++scope;
         ASSERT_EQUALS(Scope::eFunction, scope->type);
@@ -8622,7 +8660,7 @@ private:
                       "}");
 
         ASSERT(db && db->scopeList.size() == 3);
-        std::list<Scope>::const_iterator scope = db->scopeList.cbegin();
+        auto scope = db->scopeList.cbegin();
         ASSERT_EQUALS(Scope::eGlobal, scope->type);
         ++scope;
         ASSERT_EQUALS(Scope::eFunction, scope->type);
@@ -8638,7 +8676,7 @@ private:
                       "};\n");
 
         ASSERT(db && db->scopeList.size() == 3);
-        std::list<Scope>::const_iterator scope = db->scopeList.cbegin();
+        auto scope = db->scopeList.cbegin();
         ASSERT_EQUALS(Scope::eGlobal, scope->type);
         ++scope;
         ASSERT_EQUALS(Scope::eStruct, scope->type);
@@ -8661,7 +8699,7 @@ private:
                       "}\n");
 
         ASSERT(db && db->scopeList.size() == 3);
-        std::list<Scope>::const_iterator scope = db->scopeList.cbegin();
+        auto scope = db->scopeList.cbegin();
         ASSERT_EQUALS(Scope::eGlobal, scope->type);
         ++scope;
         ASSERT_EQUALS(Scope::eFunction, scope->type);
@@ -8696,7 +8734,7 @@ private:
                           "Fred::foo(const std::string & b) { }");
 
             ASSERT(db && db->scopeList.size() == 3);
-            std::list<Scope>::const_iterator scope = db->scopeList.cbegin();
+            auto scope = db->scopeList.cbegin();
             ASSERT_EQUALS(Scope::eGlobal, scope->type);
             ++scope;
             ASSERT_EQUALS(Scope::eClass, scope->type);
@@ -8711,7 +8749,7 @@ private:
                           "bool f(bool (*g)(int)) { return g(0); }\n");
 
             ASSERT(db && db->scopeList.size() == 2);
-            std::list<Scope>::const_iterator scope = db->scopeList.cbegin();
+            auto scope = db->scopeList.cbegin();
             ASSERT_EQUALS(Scope::eGlobal, scope->type);
             ASSERT(scope->functionList.size() == 1);
             ++scope;
@@ -8719,7 +8757,8 @@ private:
         }
     }
 #define typeOf(...) typeOf_(__FILE__, __LINE__, __VA_ARGS__)
-    std::string typeOf_(const char* file, int line, const char code[], const char pattern[], bool cpp = true, const Settings *settings = nullptr) {
+    template<size_t size>
+    std::string typeOf_(const char* file, int line, const char (&code)[size], const char pattern[], bool cpp = true, const Settings *settings = nullptr) {
         SimpleTokenizer tokenizer(settings ? *settings : settings2, *this);
         ASSERT_LOC(tokenizer.tokenize(code, cpp), file, line);
         const Token* tok;
@@ -10367,210 +10406,258 @@ private:
 
     void exprIds()
     {
-        const char* code;
+        {
+            const char code[] = "int f(int a) {\n"
+                                "    return a +\n"
+                                "           a;\n"
+                                "}\n";
+            ASSERT_EQUALS("", testExprIdEqual(code, "a", 2U, "a", 3U));
+        }
 
-        code = "int f(int a) {\n"
-               "    return a +\n"
-               "           a;\n"
-               "}\n";
-        ASSERT_EQUALS("", testExprIdEqual(code, "a", 2U, "a", 3U));
+        {
+            const char code[] = "int f(int a, int b) {\n"
+                                "    return a +\n"
+                                "           b;\n"
+                                "}\n";
+            ASSERT_EQUALS(true, testExprIdNotEqual(code, "a", 2U, "b", 3U));
+        }
 
-        code = "int f(int a, int b) {\n"
-               "    return a +\n"
-               "           b;\n"
-               "}\n";
-        ASSERT_EQUALS(true, testExprIdNotEqual(code, "a", 2U, "b", 3U));
+        {
+            const char code[] = "int f(int a) {\n"
+                                "    int x = a++;\n"
+                                "    int y = a++;\n"
+                                "    return x + a;\n"
+                                "}\n";
+            ASSERT_EQUALS(true, testExprIdNotEqual(code, "++", 2U, "++", 3U));
+        }
 
-        code = "int f(int a) {\n"
-               "    int x = a++;\n"
-               "    int y = a++;\n"
-               "    return x + a;\n"
-               "}\n";
-        ASSERT_EQUALS(true, testExprIdNotEqual(code, "++", 2U, "++", 3U));
+        {
+            const char code[] = "int f(int a) {\n"
+                                "    int x = a;\n"
+                                "    return x + a;\n"
+                                "}\n";
+            ASSERT_EQUALS(true, testExprIdNotEqual(code, "x", 3U, "a", 3U));
+        }
 
-        code = "int f(int a) {\n"
-               "    int x = a;\n"
-               "    return x + a;\n"
-               "}\n";
-        ASSERT_EQUALS(true, testExprIdNotEqual(code, "x", 3U, "a", 3U));
+        {
+            const char code[] = "int f(int a) {\n"
+                                "    int& x = a;\n"
+                                "    return x + a;\n"
+                                "}\n";
+            TODO_ASSERT_EQUALS("", "x@2 != a@1", testExprIdEqual(code, "x", 3U, "a", 3U));
+        }
 
-        code = "int f(int a) {\n"
-               "    int& x = a;\n"
-               "    return x + a;\n"
-               "}\n";
-        TODO_ASSERT_EQUALS("", "x@2 != a@1", testExprIdEqual(code, "x", 3U, "a", 3U));
+        {
+            const char code[] = "int f(int a) {\n"
+                                "    int& x = a;\n"
+                                "    return (x + 1) +\n"
+                                "           (a + 1);\n"
+                                "}\n";
+            ASSERT_EQUALS("", testExprIdEqual(code, "+", 3U, "+", 4U));
+        }
 
-        code = "int f(int a) {\n"
-               "    int& x = a;\n"
-               "    return (x + 1) +\n"
-               "           (a + 1);\n"
-               "}\n";
-        ASSERT_EQUALS("", testExprIdEqual(code, "+", 3U, "+", 4U));
+        {
+            const char code[] = "int& g(int& x) { return x; }\n"
+                                "int f(int a) {\n"
+                                "    return (g(a) + 1) +\n"
+                                "           (a + 1);\n"
+                                "}\n";
+            ASSERT_EQUALS("", testExprIdEqual(code, "+", 3U, "+", 4U));
+        }
 
-        code = "int& g(int& x) { return x; }\n"
-               "int f(int a) {\n"
-               "    return (g(a) + 1) +\n"
-               "           (a + 1);\n"
-               "}\n";
-        ASSERT_EQUALS("", testExprIdEqual(code, "+", 3U, "+", 4U));
+        {
+            const char code[] = "int f(int a, int b) {\n"
+                                "    int x = (b-a)-a;\n"
+                                "    int y = (b-a)-a;\n"
+                                "    return x + y;\n"
+                                "}\n";
+            ASSERT_EQUALS("", testExprIdEqual(code, "- a ;", 2U, "- a ;", 3U));
+            ASSERT_EQUALS("", testExprIdEqual(code, "- a )", 2U, "- a )", 3U));
+            ASSERT_EQUALS(true, testExprIdNotEqual(code, "- a )", 2U, "- a ;", 3U));
+        }
 
-        code = "int f(int a, int b) {\n"
-               "    int x = (b-a)-a;\n"
-               "    int y = (b-a)-a;\n"
-               "    return x + y;\n"
-               "}\n";
-        ASSERT_EQUALS("", testExprIdEqual(code, "- a ;", 2U, "- a ;", 3U));
-        ASSERT_EQUALS("", testExprIdEqual(code, "- a )", 2U, "- a )", 3U));
-        ASSERT_EQUALS(true, testExprIdNotEqual(code, "- a )", 2U, "- a ;", 3U));
+        {
+            const char code[] = "int f(int a, int b) {\n"
+                                "    int x = a-(b-a);\n"
+                                "    int y = a-(b-a);\n"
+                                "    return x + y;\n"
+                                "}\n";
+            ASSERT_EQUALS("", testExprIdEqual(code, "- ( b", 2U, "- ( b", 3U));
+            ASSERT_EQUALS("", testExprIdEqual(code, "- a )", 2U, "- a )", 3U));
+            ASSERT_EQUALS(true, testExprIdNotEqual(code, "- a )", 2U, "- ( b", 3U));
+        }
 
-        code = "int f(int a, int b) {\n"
-               "    int x = a-(b-a);\n"
-               "    int y = a-(b-a);\n"
-               "    return x + y;\n"
-               "}\n";
-        ASSERT_EQUALS("", testExprIdEqual(code, "- ( b", 2U, "- ( b", 3U));
-        ASSERT_EQUALS("", testExprIdEqual(code, "- a )", 2U, "- a )", 3U));
-        ASSERT_EQUALS(true, testExprIdNotEqual(code, "- a )", 2U, "- ( b", 3U));
+        {
+            const char code[] = "void f(int a, int b) {\n"
+                                "    int x = (b+a)+a;\n"
+                                "    int y = a+(b+a);\n"
+                                "    return x + y;\n"
+                                "}\n";
+            ASSERT_EQUALS("", testExprIdEqual(code, "+ a ;", 2U, "+ ( b", 3U));
+            ASSERT_EQUALS("", testExprIdEqual(code, "+ a ) +", 2U, "+ a ) ;", 3U));
+            ASSERT_EQUALS(true, testExprIdNotEqual(code, "+ a ;", 2U, "+ a )", 3U));
+        }
 
-        code = "void f(int a, int b) {\n"
-               "    int x = (b+a)+a;\n"
-               "    int y = a+(b+a);\n"
-               "    return x + y;\n"
-               "}\n";
-        ASSERT_EQUALS("", testExprIdEqual(code, "+ a ;", 2U, "+ ( b", 3U));
-        ASSERT_EQUALS("", testExprIdEqual(code, "+ a ) +", 2U, "+ a ) ;", 3U));
-        ASSERT_EQUALS(true, testExprIdNotEqual(code, "+ a ;", 2U, "+ a )", 3U));
+        {
+            const char code[] = "void f(int a, int b) {\n"
+                                "    int x = (b+a)+a;\n"
+                                "    int y = a+(a+b);\n"
+                                "    return x + y;\n"
+                                "}\n";
+            ASSERT_EQUALS("", testExprIdEqual(code, "+ a ;", 2U, "+ ( a", 3U));
+            ASSERT_EQUALS("", testExprIdEqual(code, "+ a ) +", 2U, "+ b ) ;", 3U));
+            ASSERT_EQUALS(true, testExprIdNotEqual(code, "+ a ;", 2U, "+ b", 3U));
+        }
 
-        code = "void f(int a, int b) {\n"
-               "    int x = (b+a)+a;\n"
-               "    int y = a+(a+b);\n"
-               "    return x + y;\n"
-               "}\n";
-        ASSERT_EQUALS("", testExprIdEqual(code, "+ a ;", 2U, "+ ( a", 3U));
-        ASSERT_EQUALS("", testExprIdEqual(code, "+ a ) +", 2U, "+ b ) ;", 3U));
-        ASSERT_EQUALS(true, testExprIdNotEqual(code, "+ a ;", 2U, "+ b", 3U));
+        {
+            const char code[] = "struct A { int x; };\n"
+                                "void f(A a, int b) {\n"
+                                "    int x = (b-a.x)-a.x;\n"
+                                "    int y = (b-a.x)-a.x;\n"
+                                "    return x + y;\n"
+                                "}\n";
+            ASSERT_EQUALS("", testExprIdEqual(code, "- a . x ;", 3U, "- a . x ;", 4U));
+            ASSERT_EQUALS("", testExprIdEqual(code, "- a . x )", 3U, "- a . x )", 4U));
+        }
 
-        code = "struct A { int x; };\n"
-               "void f(A a, int b) {\n"
-               "    int x = (b-a.x)-a.x;\n"
-               "    int y = (b-a.x)-a.x;\n"
-               "    return x + y;\n"
-               "}\n";
-        ASSERT_EQUALS("", testExprIdEqual(code, "- a . x ;", 3U, "- a . x ;", 4U));
-        ASSERT_EQUALS("", testExprIdEqual(code, "- a . x )", 3U, "- a . x )", 4U));
+        {
+            const char code[] = "struct A { int x; };\n"
+                                "void f(A a, int b) {\n"
+                                "    int x = a.x-(b-a.x);\n"
+                                "    int y = a.x-(b-a.x);\n"
+                                "    return x + y;\n"
+                                "}\n";
+            ASSERT_EQUALS("", testExprIdEqual(code, "- ( b", 3U, "- ( b", 4U));
+            ASSERT_EQUALS("", testExprIdEqual(code, "- a . x )", 3U, "- a . x )", 4U));
+        }
 
-        code = "struct A { int x; };\n"
-               "void f(A a, int b) {\n"
-               "    int x = a.x-(b-a.x);\n"
-               "    int y = a.x-(b-a.x);\n"
-               "    return x + y;\n"
-               "}\n";
-        ASSERT_EQUALS("", testExprIdEqual(code, "- ( b", 3U, "- ( b", 4U));
-        ASSERT_EQUALS("", testExprIdEqual(code, "- a . x )", 3U, "- a . x )", 4U));
+        {
+            const char code[] = "struct A { int x; };\n"
+                                "void f(A a) {\n"
+                                "    int x = a.x;\n"
+                                "    int y = a.x;\n"
+                                "    return x + y;\n"
+                                "}\n";
+            ASSERT_EQUALS("", testExprIdEqual(code, ". x", 3U, ". x", 4U));
+        }
 
-        code = "struct A { int x; };\n"
-               "void f(A a) {\n"
-               "    int x = a.x;\n"
-               "    int y = a.x;\n"
-               "    return x + y;\n"
-               "}\n";
-        ASSERT_EQUALS("", testExprIdEqual(code, ". x", 3U, ". x", 4U));
+        {
+            const char code[] = "struct A { int x; };\n"
+                                "void f(A a, A b) {\n"
+                                "    int x = a.x;\n"
+                                "    int y = b.x;\n"
+                                "    return x + y;\n"
+                                "}\n";
+            ASSERT_EQUALS(true, testExprIdNotEqual(code, ". x", 3U, ". x", 4U));
+        }
 
-        code = "struct A { int x; };\n"
-               "void f(A a, A b) {\n"
-               "    int x = a.x;\n"
-               "    int y = b.x;\n"
-               "    return x + y;\n"
-               "}\n";
-        ASSERT_EQUALS(true, testExprIdNotEqual(code, ". x", 3U, ". x", 4U));
+        {
+            const char code[] = "struct A { int y; };\n"
+                                "struct B { A x; }\n"
+                                "void f(B a) {\n"
+                                "    int x = a.x.y;\n"
+                                "    int y = a.x.y;\n"
+                                "    return x + y;\n"
+                                "}\n";
+            ASSERT_EQUALS("", testExprIdEqual(code, ". x . y", 4U, ". x . y", 5U));
+            ASSERT_EQUALS("", testExprIdEqual(code, ". y", 4U, ". y", 5U));
+        }
 
-        code = "struct A { int y; };\n"
-               "struct B { A x; }\n"
-               "void f(B a) {\n"
-               "    int x = a.x.y;\n"
-               "    int y = a.x.y;\n"
-               "    return x + y;\n"
-               "}\n";
-        ASSERT_EQUALS("", testExprIdEqual(code, ". x . y", 4U, ". x . y", 5U));
-        ASSERT_EQUALS("", testExprIdEqual(code, ". y", 4U, ". y", 5U));
+        {
+            const char code[] = "struct A { int y; };\n"
+                                "struct B { A x; }\n"
+                                "void f(B a, B b) {\n"
+                                "    int x = a.x.y;\n"
+                                "    int y = b.x.y;\n"
+                                "    return x + y;\n"
+                                "}\n";
+            ASSERT_EQUALS(true, testExprIdNotEqual(code, ". x . y", 4U, ". x . y", 5U));
+            ASSERT_EQUALS(true, testExprIdNotEqual(code, ". y", 4U, ". y", 5U));
+        }
 
-        code = "struct A { int y; };\n"
-               "struct B { A x; }\n"
-               "void f(B a, B b) {\n"
-               "    int x = a.x.y;\n"
-               "    int y = b.x.y;\n"
-               "    return x + y;\n"
-               "}\n";
-        ASSERT_EQUALS(true, testExprIdNotEqual(code, ". x . y", 4U, ". x . y", 5U));
-        ASSERT_EQUALS(true, testExprIdNotEqual(code, ". y", 4U, ". y", 5U));
+        {
+            const char code[] = "struct A { int g(); };\n"
+                                "struct B { A x; }\n"
+                                "void f(B a) {\n"
+                                "    int x = a.x.g();\n"
+                                "    int y = a.x.g();\n"
+                                "    return x + y;\n"
+                                "}\n";
+            ASSERT_EQUALS("", testExprIdEqual(code, ". x . g ( )", 4U, ". x . g ( )", 5U));
+            ASSERT_EQUALS("", testExprIdEqual(code, ". g ( )", 4U, ". g ( )", 5U));
+        }
 
-        code = "struct A { int g(); };\n"
-               "struct B { A x; }\n"
-               "void f(B a) {\n"
-               "    int x = a.x.g();\n"
-               "    int y = a.x.g();\n"
-               "    return x + y;\n"
-               "}\n";
-        ASSERT_EQUALS("", testExprIdEqual(code, ". x . g ( )", 4U, ". x . g ( )", 5U));
-        ASSERT_EQUALS("", testExprIdEqual(code, ". g ( )", 4U, ". g ( )", 5U));
+        {
+            const char code[] = "struct A { int g(int, int); };\n"
+                                "struct B { A x; }\n"
+                                "void f(B a, int b, int c) {\n"
+                                "    int x = a.x.g(b, c);\n"
+                                "    int y = a.x.g(b, c);\n"
+                                "    return x + y;\n"
+                                "}\n";
+            ASSERT_EQUALS("", testExprIdEqual(code, ". x . g ( b , c )", 4U, ". x . g ( b , c )", 5U));
+            ASSERT_EQUALS("", testExprIdEqual(code, ". g ( b , c )", 4U, ". g ( b , c )", 5U));
+        }
 
-        code = "struct A { int g(int, int); };\n"
-               "struct B { A x; }\n"
-               "void f(B a, int b, int c) {\n"
-               "    int x = a.x.g(b, c);\n"
-               "    int y = a.x.g(b, c);\n"
-               "    return x + y;\n"
-               "}\n";
-        ASSERT_EQUALS("", testExprIdEqual(code, ". x . g ( b , c )", 4U, ". x . g ( b , c )", 5U));
-        ASSERT_EQUALS("", testExprIdEqual(code, ". g ( b , c )", 4U, ". g ( b , c )", 5U));
+        {
+            const char code[] = "int g();\n"
+                                "void f() {\n"
+                                "    int x = g();\n"
+                                "    int y = g();\n"
+                                "    return x + y;\n"
+                                "}\n";
+            ASSERT_EQUALS("", testExprIdEqual(code, "(", 3U, "(", 4U));
+        }
 
-        code = "int g();\n"
-               "void f() {\n"
-               "    int x = g();\n"
-               "    int y = g();\n"
-               "    return x + y;\n"
-               "}\n";
-        ASSERT_EQUALS("", testExprIdEqual(code, "(", 3U, "(", 4U));
+        {
+            const char code[] = "struct A { int g(); };\n"
+                                "void f() {\n"
+                                "    int x = A::g();\n"
+                                "    int y = A::g();\n"
+                                "    return x + y;\n"
+                                "}\n";
+            ASSERT_EQUALS("", testExprIdEqual(code, "(", 3U, "(", 4U));
+        }
 
-        code = "struct A { int g(); };\n"
-               "void f() {\n"
-               "    int x = A::g();\n"
-               "    int y = A::g();\n"
-               "    return x + y;\n"
-               "}\n";
-        ASSERT_EQUALS("", testExprIdEqual(code, "(", 3U, "(", 4U));
+        {
+            const char code[] = "int g();\n"
+                                "void f(int a, int b) {\n"
+                                "    int x = g(a, b);\n"
+                                "    int y = g(a, b);\n"
+                                "    return x + y;\n"
+                                "}\n";
+            ASSERT_EQUALS("", testExprIdEqual(code, "(", 3U, "(", 4U));
+        }
 
-        code = "int g();\n"
-               "void f(int a, int b) {\n"
-               "    int x = g(a, b);\n"
-               "    int y = g(a, b);\n"
-               "    return x + y;\n"
-               "}\n";
-        ASSERT_EQUALS("", testExprIdEqual(code, "(", 3U, "(", 4U));
+        {
+            const char code[] = "struct A { int g(); };\n"
+                                "void f() {\n"
+                                "    int x = A::g(a, b);\n"
+                                "    int y = A::g(a, b);\n"
+                                "    return x + y;\n"
+                                "}\n";
+            ASSERT_EQUALS("", testExprIdEqual(code, "(", 3U, "(", 4U));
+        }
 
-        code = "struct A { int g(); };\n"
-               "void f() {\n"
-               "    int x = A::g(a, b);\n"
-               "    int y = A::g(a, b);\n"
-               "    return x + y;\n"
-               "}\n";
-        ASSERT_EQUALS("", testExprIdEqual(code, "(", 3U, "(", 4U));
+        {
+            const char code[] = "int g();\n"
+                                "void f(int a, int b) {\n"
+                                "    int x = g(a, b);\n"
+                                "    int y = g(b, a);\n"
+                                "    return x + y;\n"
+                                "}\n";
+            ASSERT_EQUALS(true, testExprIdNotEqual(code, "(", 3U, "(", 4U));
+        }
 
-        code = "int g();\n"
-               "void f(int a, int b) {\n"
-               "    int x = g(a, b);\n"
-               "    int y = g(b, a);\n"
-               "    return x + y;\n"
-               "}\n";
-        ASSERT_EQUALS(true, testExprIdNotEqual(code, "(", 3U, "(", 4U));
-
-        code = "struct A { int g(); };\n"
-               "void f() {\n"
-               "    int x = A::g(a, b);\n"
-               "    int y = A::g(b, a);\n"
-               "    return x + y;\n"
-               "}\n";
-        ASSERT_EQUALS(true, testExprIdNotEqual(code, "(", 3U, "(", 4U));
+        {
+            const char code[] = "struct A { int g(); };\n"
+                                "void f() {\n"
+                                "    int x = A::g(a, b);\n"
+                                "    int y = A::g(b, a);\n"
+                                "    return x + y;\n"
+                                "}\n";
+            ASSERT_EQUALS(true, testExprIdNotEqual(code, "(", 3U, "(", 4U));
+        }
     }
 };
 

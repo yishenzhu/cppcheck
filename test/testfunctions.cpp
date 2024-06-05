@@ -23,6 +23,7 @@
 #include "settings.h"
 #include "standards.h"
 
+#include <cstddef>
 #include <string>
 
 class TestFunctions : public TestFixture {
@@ -104,7 +105,8 @@ private:
     }
 
 #define check(...) check_(__FILE__, __LINE__, __VA_ARGS__)
-    void check_(const char* file, int line, const char code[], bool cpp = true, const Settings* settings_ = nullptr) {
+    template<size_t size>
+    void check_(const char* file, int line, const char (&code)[size], bool cpp = true, const Settings* settings_ = nullptr) {
         if (!settings_)
             settings_ = &settings;
 
@@ -1432,6 +1434,16 @@ private:
               "    delete *v.begin();\n"
               "}\n");
         ASSERT_EQUALS("", errout_str());
+
+        check("int __attribute__((pure)) p_foo(int);\n" // #12697
+              "int __attribute__((const)) c_foo(int);\n"
+              "void f() {\n"
+              "    p_foo(0);\n"
+              "    c_foo(0);\n"
+              "}\n");
+        ASSERT_EQUALS("[test.cpp:4]: (warning) Return value of function p_foo() is not used.\n"
+                      "[test.cpp:5]: (warning) Return value of function c_foo() is not used.\n",
+                      errout_str());
     }
 
     void checkIgnoredErrorCode() {

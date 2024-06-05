@@ -20,6 +20,7 @@
 #include "helpers.h"
 #include "summaries.h"
 
+#include <cstddef>
 #include <string>
 
 class TestSummaries : public TestFixture {
@@ -35,7 +36,8 @@ private:
     }
 
 #define createSummaries(...) createSummaries_(__FILE__, __LINE__, __VA_ARGS__)
-    std::string createSummaries_(const char* file, int line, const char code[], bool cpp = true) {
+    template<size_t size>
+    std::string createSummaries_(const char* file, int line, const char (&code)[size], bool cpp = true) {
         // tokenize..
         SimpleTokenizer tokenizer(settingsDefault, *this);
         ASSERT_LOC(tokenizer.tokenize(code, cpp), file, line);

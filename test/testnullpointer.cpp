@@ -27,6 +27,7 @@
 #include "token.h"
 #include "tokenize.h"
 
+#include <cstddef>
 #include <list>
 #include <map>
 #include <string>
@@ -176,7 +177,8 @@ private:
     }
 
 #define check(...) check_(__FILE__, __LINE__, __VA_ARGS__)
-    void check_(const char* file, int line, const char code[], bool inconclusive = false, bool cpp = true) {
+    template<size_t size>
+    void check_(const char* file, int line, const char (&code)[size], bool inconclusive = false, bool cpp = true) {
         const Settings settings1 = settingsBuilder(settings).certainty(Certainty::inconclusive, inconclusive).build();
 
         // Tokenize..
@@ -188,7 +190,8 @@ private:
     }
 
 #define checkP(...) checkP_(__FILE__, __LINE__, __VA_ARGS__)
-    void checkP_(const char* file, int line, const char code[]) {
+    template<size_t size>
+    void checkP_(const char* file, int line, const char (&code)[size]) {
         const Settings settings1 = settingsBuilder(settings).certainty(Certainty::inconclusive, false).build();
 
         std::vector<std::string> files(1, "test.cpp");
@@ -4146,11 +4149,17 @@ private:
 
         // nothing bad..
         {
+            constexpr char xmldata[] = "<?xml version=\"1.0\"?>\n"
+                                       "<def>\n"
+                                       "  <function name=\"x\">\n"
+                                       "    <arg nr=\"1\"></arg>\n"
+                                       "    <arg nr=\"2\"></arg>\n"
+                                       "    <arg nr=\"3\"></arg>\n"
+                                       "  </function>\n"
+                                       "</def>";
+
             Library library;
-            Library::ArgumentChecks arg;
-            library.functions["x"].argumentChecks[1] = arg;
-            library.functions["x"].argumentChecks[2] = arg;
-            library.functions["x"].argumentChecks[3] = arg;
+            ASSERT(LibraryHelper::loadxmldata(library, xmldata, sizeof(xmldata)));
 
             std::list<const Token *> null;
             CheckNullPointer::parseFunctionCall(*xtok, null, library);
@@ -4159,12 +4168,17 @@ private:
 
         // for 1st parameter null pointer is not ok..
         {
+            constexpr char xmldata[] = "<?xml version=\"1.0\"?>\n"
+                                       "<def>\n"
+                                       "  <function name=\"x\">\n"
+                                       "    <arg nr=\"1\"><not-null/></arg>\n"
+                                       "    <arg nr=\"2\"></arg>\n"
+                                       "    <arg nr=\"3\"></arg>\n"
+                                       "  </function>\n"
+                                       "</def>";
+
             Library library;
-            Library::ArgumentChecks arg;
-            library.functions["x"].argumentChecks[1] = arg;
-            library.functions["x"].argumentChecks[2] = arg;
-            library.functions["x"].argumentChecks[3] = arg;
-            library.functions["x"].argumentChecks[1].notnull = true;
+            ASSERT(LibraryHelper::loadxmldata(library, xmldata, sizeof(xmldata)));
 
             std::list<const Token *> null;
             CheckNullPointer::parseFunctionCall(*xtok, null, library);
@@ -4478,7 +4492,8 @@ private:
     }
 
 #define ctu(code) ctu_(code, __FILE__, __LINE__)
-    void ctu_(const char code[], const char* file, int line) {
+    template<size_t size>
+    void ctu_(const char (&code)[size], const char* file, int line) {
         // Tokenize..
         SimpleTokenizer tokenizer(settings, *this);
         ASSERT_LOC(tokenizer.tokenize(code), file, line);

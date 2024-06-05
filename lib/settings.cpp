@@ -290,14 +290,18 @@ void Settings::setCheckLevel(CheckLevel level)
     if (level == CheckLevel::normal) {
         // Checking should finish in reasonable time.
         checkLevel = level;
-        performanceValueFlowMaxSubFunctionArgs = 8;
-        performanceValueFlowMaxIfCount = 100;
+        vfOptions.maxSubFunctionArgs = 8;
+        vfOptions.maxIfCount = 100;
+        vfOptions.doConditionExpressionAnalysis = false;
+        vfOptions.maxForwardBranches = 4;
     }
     else if (level == CheckLevel::exhaustive) {
         // Checking can take a little while. ~ 10 times slower than normal analysis is OK.
         checkLevel = CheckLevel::exhaustive;
-        performanceValueFlowMaxIfCount = -1;
-        performanceValueFlowMaxSubFunctionArgs = 256;
+        vfOptions.maxIfCount = -1;
+        vfOptions.maxSubFunctionArgs = 256;
+        vfOptions.doConditionExpressionAnalysis = true;
+        vfOptions.maxForwardBranches = -1;
     }
 }
 
@@ -313,10 +317,11 @@ static const std::set<std::string> autosarCheckers{
     "comparePointers",
     "constParameter",
     "cstyleCast",
-    "ctuOneDefinitionViolation",
+    "ctuOneDefinitionRuleViolation",
     "doubleFree",
     "duplInheritedMember",
     "duplicateBreak",
+    "exceptThrowInDestructor",
     "funcArgNamesDifferent",
     "functionConst",
     "functionStatic",
@@ -340,9 +345,11 @@ static const std::set<std::string> autosarCheckers{
     "redundantAssignment",
     "redundantInitialization",
     "returnDanglingLifetime",
+    "shadowArgument",
+    "shadowFunction",
+    "shadowVariable",
     "shiftTooManyBits",
-    "sizeofSideEffects",
-    "throwInDestructor",
+    "sizeofFunctionCall",
     "throwInNoexceptFunction",
     "uninitData",
     "uninitMember",
@@ -353,7 +360,7 @@ static const std::set<std::string> autosarCheckers{
     "unusedStructMember",
     "unusedValue",
     "unusedVariable",
-    "useInitializerList",
+    "useInitializationList",
     "variableScope",
     "virtualCallInConstructor",
     "zerodiv",
@@ -405,8 +412,11 @@ static const std::set<std::string> certCppCheckers{
     "accessMoved",
     "comparePointers",
     "containerOutOfBounds",
-    "ctuOneDefinitionViolation",
-    "deallocMismatch",
+    "ctuOneDefinitionRuleViolation",
+    "danglingLifetime",
+    "danglingReference",
+    "danglingTempReference",
+    "danglingTemporaryLifetime",
     "deallocThrow",
     "deallocuse",
     "doubleFree",
@@ -414,11 +424,12 @@ static const std::set<std::string> certCppCheckers{
     "exceptThrowInDestructor",
     "initializerList",
     "invalidContainer",
-    "lifetime",
     "memleak",
+    "mismatchAllocDealloc",
     "missingReturn",
     "nullPointer",
     "operatorEqToSelf",
+    "returnDanglingLifetime",
     "sizeofCalculation",
     "uninitvar",
     "virtualCallInConstructor",
@@ -433,10 +444,10 @@ static const std::set<std::string> misrac2012Checkers{
     "bufferAccessOutOfBounds",
     "comparePointers",
     "compareValueOutOfTypeRangeError",
-    "constPointer",
+    "constParameterPointer",
     "danglingLifetime",
+    "danglingTemporaryLifetime",
     "duplicateBreak",
-    "error",
     "funcArgNamesDifferent",
     "incompatibleFileOpen",
     "invalidFunctionArg",
@@ -454,11 +465,14 @@ static const std::set<std::string> misrac2012Checkers{
     "redundantAssignment",
     "redundantCondition",
     "resourceLeak",
+    "returnDanglingLifetime",
     "shadowVariable",
     "sizeofCalculation",
+    "sizeofwithsilentarraypointer",
     "syntaxError",
     "uninitvar",
     "unknownEvaluationOrder",
+    "unreachableCode",
     "unreadVariable",
     "unusedLabel",
     "unusedVariable",
@@ -474,10 +488,10 @@ static const std::set<std::string> misrac2023Checkers{
     "bufferAccessOutOfBounds",
     "comparePointers",
     "compareValueOutOfTypeRangeError",
-    "constPointer",
+    "constParameterPointer",
     "danglingLifetime",
+    "danglingTemporaryLifetime",
     "duplicateBreak",
-    "error",
     "funcArgNamesDifferent",
     "incompatibleFileOpen",
     "invalidFunctionArg",
@@ -495,11 +509,14 @@ static const std::set<std::string> misrac2023Checkers{
     "redundantAssignment",
     "redundantCondition",
     "resourceLeak",
+    "returnDanglingLifetime",
     "shadowVariable",
     "sizeofCalculation",
+    "sizeofwithsilentarraypointer",
     "syntaxError",
     "uninitvar",
     "unknownEvaluationOrder",
+    "unreachableCode",
     "unreadVariable",
     "unusedLabel",
     "unusedVariable",
@@ -513,7 +530,7 @@ static const std::set<std::string> misracpp2008Checkers{
     "constParameter",
     "constVariable",
     "cstyleCast",
-    "ctuOneDefinitionViolation",
+    "ctuOneDefinitionRuleViolation",
     "danglingLifetime",
     "duplInheritedMember",
     "duplicateBreak",
@@ -522,7 +539,7 @@ static const std::set<std::string> misracpp2008Checkers{
     "functionConst",
     "functionStatic",
     "missingReturn",
-    "noExplicit",
+    "noExplicitConstructor",
     "overlappingWriteFunction",
     "overlappingWriteUnion",
     "pointerOutOfBounds",
@@ -533,8 +550,7 @@ static const std::set<std::string> misracpp2008Checkers{
     "returnTempReference",
     "shadowVariable",
     "shiftTooManyBits",
-    "sizeofSideEffects",
-    "throwInDestructor",
+    "sizeofFunctionCall",
     "uninitDerivedMemberVar",
     "uninitDerivedMemberVarPrivate",
     "uninitMemberVar",
@@ -549,8 +565,47 @@ static const std::set<std::string> misracpp2008Checkers{
     "unusedFunction",
     "unusedStructMember",
     "unusedVariable",
-    "varScope",
     "variableScope",
+    "virtualCallInConstructor"
+};
+
+static const std::set<std::string> misracpp2023Checkers{
+    "accessForwarded",
+    "accessMoved",
+    "autoVariables",
+    "compareBoolExpressionWithInt",
+    "comparePointers",
+    "compareValueOutOfTypeRangeError",
+    "constParameter",
+    "constParameterReference",
+    "ctuOneDefinitionRuleViolation",
+    "danglingLifetime",
+    "identicalConditionAfterEarlyExit",
+    "identicalInnerCondition",
+    "ignoredReturnValue",
+    "invalidFunctionArg",
+    "invalidFunctionArgBool",
+    "invalidFunctionArgStr",
+    "knownConditionTrueFalse",
+    "missingReturn",
+    "noExplicitConstructor",
+    "operatorEqToSelf",
+    "overlappingWriteUnion",
+    "pointerOutOfBounds",
+    "pointerOutOfBoundsCond",
+    "preprocessorErrorDirective",
+    "redundantAssignInSwitch",
+    "redundantAssignment",
+    "redundantCopy",
+    "redundantInitialization",
+    "shadowVariable",
+    "subtractPointers",
+    "syntaxError",
+    "uninitMemberVar",
+    "uninitvar",
+    "unknownEvaluationOrder",
+    "unreachableCode",
+    "unreadVariable",
     "virtualCallInConstructor"
 };
 
@@ -564,7 +619,9 @@ bool Settings::isPremiumEnabled(const char id[]) const
         return true;
     if (premiumArgs.find("misra-c-") != std::string::npos && (misrac2012Checkers.count(id) || misrac2023Checkers.count(id)))
         return true;
-    if (premiumArgs.find("misra-c++") != std::string::npos && misracpp2008Checkers.count(id))
+    if (premiumArgs.find("misra-c++-2008") != std::string::npos && misracpp2008Checkers.count(id))
+        return true;
+    if (premiumArgs.find("misra-c++-2023") != std::string::npos && misracpp2023Checkers.count(id))
         return true;
     return false;
 }

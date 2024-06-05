@@ -22,6 +22,8 @@
 #include "helpers.h"
 #include "settings.h"
 
+#include <cstddef>
+
 class TestAutoVariables : public TestFixture {
 public:
     TestAutoVariables() : TestFixture("TestAutoVariables") {}
@@ -30,7 +32,8 @@ private:
     const Settings settings = settingsBuilder().severity(Severity::warning).severity(Severity::style).library("std.cfg").library("qt.cfg").build();
 
 #define check(...) check_(__FILE__, __LINE__, __VA_ARGS__)
-    void check_(const char* file, int line, const char code[], bool inconclusive = true, bool cpp = true) {
+    template<size_t size>
+    void check_(const char* file, int line, const char (&code)[size], bool inconclusive = true, bool cpp = true) {
         const Settings settings1 = settingsBuilder(settings).certainty(Certainty::inconclusive, inconclusive).build();
 
         // Tokenize..
@@ -2442,7 +2445,7 @@ private:
               "    return std::next(it);\n"
               "}");
         ASSERT_EQUALS(
-            "[test.cpp:3] -> [test.cpp:4] -> [test.cpp:2] -> [test.cpp:4]: (error) Returning object that points to local variable 'x' that will be invalid when returning.\n",
+            "[test.cpp:3] -> [test.cpp:2] -> [test.cpp:4]: (error) Returning iterator to local container 'x' that will be invalid when returning.\n",
             errout_str());
 
         check("auto f() {\n"
@@ -3070,7 +3073,7 @@ private:
               "    return ptr.get();\n"
               "}\n");
         ASSERT_EQUALS(
-            "[test.cpp:4] -> [test.cpp:3] -> [test.cpp:4]: (error) Returning pointer to local variable 'ptr' that will be invalid when returning.\n",
+            "[test.cpp:4] -> [test.cpp:3] -> [test.cpp:4]: (error) Returning object that points to local variable 'ptr' that will be invalid when returning.\n",
             errout_str());
 
         // #12600

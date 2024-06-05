@@ -31,7 +31,8 @@ private:
     const Settings settings = settingsBuilder().severity(Severity::warning).build();
 
 #define check(...) check_(__FILE__, __LINE__, __VA_ARGS__)
-    void check_(const char* file, int line, const char code[]) {
+    template<size_t size>
+    void check_(const char* file, int line, const char (&code)[size]) {
         // Tokenize..
         SimpleTokenizer tokenizer(settings, *this);
         ASSERT_LOC(tokenizer.tokenize(code), file, line);
@@ -133,6 +134,15 @@ private:
               "void Geometry::ReadGeometry() {\n"
               "    assert(empty());\n"
               "}");
+        ASSERT_EQUALS("", errout_str());
+
+        check("struct S {\n" // #4811
+              "    void f() const;\n"
+              "    bool g(std::ostream& os = std::cerr) const;\n"
+              "};\n"
+              "void S::f() const {\n"
+              "    assert(g());\n"
+              "}\n");
         ASSERT_EQUALS("", errout_str());
     }
 

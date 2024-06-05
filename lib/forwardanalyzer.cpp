@@ -97,6 +97,15 @@ namespace {
             return actions.isModified();
         }
 
+        bool stopOnCondition(const Token* condTok) const
+        {
+            if (analyzer->isConditional() && findAstNode(condTok, [](const Token* tok) {
+                return tok->isIncompleteVar();
+            }))
+                return true;
+            return analyzer->stopOnCondition(condTok);
+        }
+
         std::pair<bool, bool> evalCond(const Token* tok, const Token* ctx = nullptr) const {
             if (!tok)
                 return std::make_pair(false, false);
@@ -194,12 +203,12 @@ namespace {
         template<class T, class F, REQUIRES("T must be a Token class", std::is_convertible<T*, const Token*> )>
         Progress traverseConditional(T* tok, F f, bool traverseUnknown) {
             if (Token::Match(tok, "?|&&|%oror%") && tok->astOperand1() && tok->astOperand2()) {
-                T* condTok = tok->astOperand1();
+                const T* condTok = tok->astOperand1();
                 T* childTok = tok->astOperand2();
                 bool checkThen, checkElse;
                 std::tie(checkThen, checkElse) = evalCond(condTok);
                 if (!checkThen && !checkElse) {
-                    if (!traverseUnknown && analyzer->stopOnCondition(condTok) && stopUpdates()) {
+                    if (!traverseUnknown && stopOnCondition(condTok) && stopUpdates()) {
                         return Progress::Continue;
                     }
                     checkThen = true;
@@ -467,7 +476,7 @@ namespace {
                     if (updateRecursive(condTok) == Progress::Break)
                         return Break();
             }
-            if (!checkThen && !checkElse && !isDoWhile && analyzer->stopOnCondition(condTok) && stopUpdates())
+            if (!checkThen && !checkElse && !isDoWhile && stopOnCondition(condTok) && stopUpdates())
                 return Break(Analyzer::Terminate::Conditional);
             // condition is false, we don't enter the loop
             if (checkElse)
@@ -605,10 +614,10 @@ namespace {
                     const Scope* scope = tok->scope();
                     if (!scope)
                         return Break();
-                    if (Token::Match(tok->link()->previous(), ")|else {")) {
-                        const Token* tok2 = tok->link()->previous();
-                        const bool inElse = Token::simpleMatch(tok2, "else {");
-                        const bool inLoop = inElse ? false : Token::Match(tok2->link()->previous(), "while|for (");
+                    if (contains({Scope::eDo, Scope::eFor, Scope::eWhile, Scope::eIf, Scope::eElse}, scope->type)) {
+                        const bool inElse = scope->type == Scope::eElse;
+                        const bool inDoWhile = scope->type == Scope::eDo;
+                        const bool inLoop = contains({Scope::eDo, Scope::eFor, Scope::eWhile}, scope->type);
                         Token* condTok = getCondTokFromEnd(tok);
                         if (!condTok)
                             return Break();
@@ -637,29 +646,24 @@ namespace {
                             }
                         }
                         analyzer->assume(condTok, !inElse, Analyzer::Assume::Quiet);
-                        if (Token::simpleMatch(tok, "} else {"))
+                        assert(!inDoWhile || Token::simpleMatch(tok, "} while ("));
+                        if (Token::simpleMatch(tok, "} else {") || inDoWhile)
                             tok = tok->linkAt(2);
-                    } else if (scope->type == Scope::eTry) {
+                    } else if (contains({Scope::eTry, Scope::eCatch}, scope->type)) {
                         if (!analyzer->lowerToPossible())
                             return Break(Analyzer::Terminate::Bail);
                     } else if (scope->type == Scope::eLambda) {
                         return Break();
-                    } else if (scope->type == Scope::eDo && Token::simpleMatch(tok, "} while (")) {
-                        if (updateLoopExit(end, tok, tok->tokAt(2)->astOperand2()) == Progress::Break)
-                            return Break();
-                        tok = tok->linkAt(2);
-                    } else if (Token::simpleMatch(tok->next(), "else {")) {
-                        tok = tok->linkAt(2);
                     }
                 } else if (tok->isControlFlowKeyword() && Token::Match(tok, "if|while|for (") &&
-                           Token::simpleMatch(tok->next()->link(), ") {")) {
-                    if (settings.checkLevel == Settings::CheckLevel::normal && ++branchCount > 4) {
+                           Token::simpleMatch(tok->linkAt(1), ") {")) {
+                    if ((settings.vfOptions.maxForwardBranches > 0) && (++branchCount > settings.vfOptions.maxForwardBranches)) {
                         // TODO: should be logged on function-level instead of file-level
                         reportError(Severity::information, "normalCheckLevelMaxBranches", "Limiting analysis of branches. Use --check-level=exhaustive to analyze all branches.");
                         return Break(Analyzer::Terminate::Bail);
                     }
-                    Token* endCond = tok->next()->link();
-                    Token* endBlock = endCond->next()->link();
+                    Token* endCond = tok->linkAt(1);
+                    Token* endBlock = endCond->linkAt(1);
                     Token* condTok = getCondTok(tok);
                     Token* initTok = getInitTok(tok);
                     if (initTok && updateRecursive(initTok) == Progress::Break)
@@ -694,7 +698,7 @@ namespace {
                         Branch elseBranch{endBlock->tokAt(2) ? endBlock->linkAt(2) : nullptr};
                         // Check if condition is true or false
                         std::tie(thenBranch.check, elseBranch.check) = evalCond(condTok);
-                        if (!thenBranch.check && !elseBranch.check && analyzer->stopOnCondition(condTok) && stopUpdates())
+                        if (!thenBranch.check && !elseBranch.check && stopOnCondition(condTok) && stopUpdates())
                             return Break(Analyzer::Terminate::Conditional);
                         const bool hasElse = Token::simpleMatch(endBlock, "} else {");
                         bool bail = false;
@@ -765,7 +769,7 @@ namespace {
                         }
                     }
                 } else if (Token::simpleMatch(tok, "try {")) {
-                    Token* endBlock = tok->next()->link();
+                    Token* endBlock = tok->linkAt(1);
                     ForwardTraversal tryTraversal = fork();
                     tryTraversal.updateScope(endBlock, depth - 1);
                     bool bail = tryTraversal.actions.isModified();
@@ -788,7 +792,7 @@ namespace {
                         return Break();
                     tok = endBlock;
                 } else if (Token::simpleMatch(tok, "do {")) {
-                    Token* endBlock = tok->next()->link();
+                    Token* endBlock = tok->linkAt(1);
                     Token* condTok = Token::simpleMatch(endBlock, "} while (") ? endBlock->tokAt(2)->astOperand2() : nullptr;
                     if (updateLoop(end, endBlock, condTok) == Progress::Break)
                         return Break();

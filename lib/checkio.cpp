@@ -411,8 +411,10 @@ void CheckIO::incompatibleFileOpenError(const Token *tok, const std::string &fil
 //---------------------------------------------------------------------------
 void CheckIO::invalidScanf()
 {
-    if (!mSettings->severity.isEnabled(Severity::warning))
+    if (!mSettings->severity.isEnabled(Severity::warning) && !mSettings->isPremiumEnabled("invalidscanf"))
         return;
+
+    logChecker("CheckIO::invalidScanf");
 
     const SymbolDatabase * const symbolDatabase = mTokenizer->getSymbolDatabase();
     for (const Scope * scope : symbolDatabase->functionScopes) {
@@ -1432,7 +1434,7 @@ CheckIO::ArgumentInfo::ArgumentInfo(const Token * arg, const Settings &settings,
         const Token *tok1 = arg->next();
         for (; tok1; tok1 = tok1->next()) {
             if (tok1->str() == "," || tok1->str() == ")") {
-                if (tok1->previous()->str() == "]") {
+                if (tok1->strAt(-1) == "]") {
                     varTok = tok1->linkAt(-1)->previous();
                     if (varTok->str() == ")" && varTok->link()->previous()->tokType() == Token::eFunction) {
                         const Function * function = varTok->link()->previous()->function();
@@ -1453,7 +1455,7 @@ CheckIO::ArgumentInfo::ArgumentInfo(const Token * arg, const Settings &settings,
                         }
                         return;
                     }
-                } else if (tok1->previous()->str() == ")" && tok1->linkAt(-1)->previous()->tokType() == Token::eFunction) {
+                } else if (tok1->strAt(-1) == ")" && tok1->linkAt(-1)->previous()->tokType() == Token::eFunction) {
                     const Function * function = tok1->linkAt(-1)->previous()->function();
                     if (function && function->retType && function->retType->isEnumType()) {
                         if (function->retType->classScope->enumType)
@@ -1482,9 +1484,9 @@ CheckIO::ArgumentInfo::ArgumentInfo(const Token * arg, const Settings &settings,
 
             // check for some common well known functions
             else if (isCPP && ((Token::Match(tok1->previous(), "%var% . size|empty|c_str ( ) [,)]") && isStdContainer(tok1->previous())) ||
-                               (Token::Match(tok1->previous(), "] . size|empty|c_str ( ) [,)]") && isStdContainer(tok1->previous()->link()->previous())))) {
+                               (Token::Match(tok1->previous(), "] . size|empty|c_str ( ) [,)]") && isStdContainer(tok1->linkAt(-1)->previous())))) {
                 tempToken = new Token(tok1);
-                if (tok1->next()->str() == "size") {
+                if (tok1->strAt(1) == "size") {
                     // size_t is platform dependent
                     if (settings.platform.sizeof_size_t == 8) {
                         tempToken->str("long");
@@ -1500,9 +1502,9 @@ CheckIO::ArgumentInfo::ArgumentInfo(const Token * arg, const Settings &settings,
 
                     tempToken->originalName("size_t");
                     tempToken->isUnsigned(true);
-                } else if (tok1->next()->str() == "empty") {
+                } else if (tok1->strAt(1) == "empty") {
                     tempToken->str("bool");
-                } else if (tok1->next()->str() == "c_str") {
+                } else if (tok1->strAt(1) == "c_str") {
                     tempToken->str("const");
                     tempToken->insertToken("*");
                     if (typeToken->strAt(2) == "string")
@@ -1532,7 +1534,7 @@ CheckIO::ArgumentInfo::ArgumentInfo(const Token * arg, const Settings &settings,
 
         if (varTok) {
             variableInfo = varTok->variable();
-            element = tok1->previous()->str() == "]";
+            element = tok1->strAt(-1) == "]";
 
             // look for std::vector operator [] and use template type as return type
             if (variableInfo) {
@@ -1710,7 +1712,7 @@ void CheckIO::wrongPrintfScanfArgumentsError(const Token* tok,
                                              nonneg int numFunction)
 {
     const Severity severity = numFormat > numFunction ? Severity::error : Severity::warning;
-    if (severity != Severity::error && !mSettings->severity.isEnabled(Severity::warning))
+    if (severity != Severity::error && !mSettings->severity.isEnabled(Severity::warning) && !mSettings->isPremiumEnabled("wrongPrintfScanfArgNum"))
         return;
 
     std::ostringstream errmsg;
@@ -1729,7 +1731,7 @@ void CheckIO::wrongPrintfScanfArgumentsError(const Token* tok,
 void CheckIO::wrongPrintfScanfPosixParameterPositionError(const Token* tok, const std::string& functionName,
                                                           nonneg int index, nonneg int numFunction)
 {
-    if (!mSettings->severity.isEnabled(Severity::warning))
+    if (!mSettings->severity.isEnabled(Severity::warning) && !mSettings->isPremiumEnabled("wrongPrintfScanfParameterPositionError"))
         return;
     std::ostringstream errmsg;
     errmsg << functionName << ": ";
@@ -1992,7 +1994,7 @@ void CheckIO::argumentType(std::ostream& os, const ArgumentInfo * argInfo)
 
 void CheckIO::invalidLengthModifierError(const Token* tok, nonneg int numFormat, const std::string& modifier)
 {
-    if (!mSettings->severity.isEnabled(Severity::warning))
+    if (!mSettings->severity.isEnabled(Severity::warning) && !mSettings->isPremiumEnabled("invalidLengthModifierError"))
         return;
     std::ostringstream errmsg;
     errmsg << "'" << modifier << "' in format string (no. " << numFormat << ") is a length modifier and cannot be used without a conversion specifier.";

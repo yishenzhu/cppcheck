@@ -25,6 +25,7 @@
 #include "tokenize.h"
 #include "tokenlist.h"
 
+#include <cstddef>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -34,7 +35,7 @@ public:
     TestVarID() : TestFixture("TestVarID") {}
 
 private:
-    const Settings settings = settingsBuilder().c(Standards::C89).cpp(Standards::CPPLatest).platform(Platform::Type::Unix64).build();
+    const Settings settings = settingsBuilder().c(Standards::C89).platform(Platform::Type::Unix64).build();
     void run() override {
         TEST_CASE(varid1);
         TEST_CASE(varid2);
@@ -102,6 +103,7 @@ private:
         TEST_CASE(varid68); // #11740 - switch (str_chars(&strOut)[0])
         TEST_CASE(varid69);
         TEST_CASE(varid70); // #12660 - function
+        TEST_CASE(varid71); // #12676 - wrong varid in uninstantiated templated constructor
         TEST_CASE(varid_for_1);
         TEST_CASE(varid_for_2);
         TEST_CASE(varid_cpp_keywords_in_c_code);
@@ -247,12 +249,14 @@ private:
         TEST_CASE(exprid8);
         TEST_CASE(exprid9);
         TEST_CASE(exprid10);
+        TEST_CASE(exprid11);
 
         TEST_CASE(structuredBindings);
     }
 
 #define tokenize(...) tokenize_(__FILE__, __LINE__, __VA_ARGS__)
-    std::string tokenize_(const char* file, int line, const char code[], bool cpp = true, const Settings *s = nullptr) {
+    template<size_t size>
+    std::string tokenize_(const char* file, int line, const char (&code)[size], bool cpp = true, const Settings *s = nullptr) {
         const Settings *settings1 = s ? s : &settings;
 
         SimpleTokenizer tokenizer(*settings1, *this);
@@ -265,7 +269,8 @@ private:
     }
 
 #define tokenizeHeader(...) tokenizeHeader_(__FILE__, __LINE__, __VA_ARGS__)
-    std::string tokenizeHeader_(const char* file, int line, const char code[], const char filename[]) {
+    template<size_t size>
+    std::string tokenizeHeader_(const char* file, int line, const char (&code)[size], const char filename[]) {
         Tokenizer tokenizer(settings, *this);
         std::istringstream istr(code);
         ASSERT_LOC(tokenizer.list.createTokens(istr, filename), file, line);
@@ -278,7 +283,8 @@ private:
     }
 
 #define tokenizeExpr(...) tokenizeExpr_(__FILE__, __LINE__, __VA_ARGS__)
-    std::string tokenizeExpr_(const char* file, int line, const char code[], const char filename[] = "test.cpp") {
+    template<size_t size>
+    std::string tokenizeExpr_(const char* file, int line, const char (&code)[size], const char filename[] = "test.cpp") {
         std::vector<std::string> files(1, filename);
         Tokenizer tokenizer(settings, *this);
         PreprocessorHelper::preprocess(code, files, tokenizer, *this);
@@ -292,7 +298,8 @@ private:
     }
 
 #define compareVaridsForVariable(...) compareVaridsForVariable_(__FILE__, __LINE__, __VA_ARGS__)
-    std::string compareVaridsForVariable_(const char* file, int line, const char code[], const char varname[], bool cpp = true) {
+    template<size_t size>
+    std::string compareVaridsForVariable_(const char* file, int line, const char (&code)[size], const char varname[], bool cpp = true) {
         SimpleTokenizer tokenizer(settings, *this);
         ASSERT_LOC((tokenizer.tokenize)(code, cpp), file, line);
 
@@ -1292,6 +1299,76 @@ private:
         const char code3[] = "extern void (*arr[10])(uint32_t some);\n";
         const char expected3[] = "1: extern void ( * arr@1 [ 10 ] ) ( uint32_t some@2 ) ;\n";
         ASSERT_EQUALS(expected3, tokenize(code3, true));
+
+        const char code4[] = "_Static_assert(sizeof((struct S){0}.i) == 4);\n"; // #12729
+        const char expected4[] = "1: _Static_assert ( sizeof ( ( struct S ) { 0 } . i ) == 4 ) ;\n";
+        ASSERT_EQUALS(expected4, tokenize(code4, false));
+    }
+
+    void varid71() {
+        const char code[] = "namespace myspace {\n"
+                            "\n"
+                            "template <typename T>\n"
+                            "class CounterTest {\n"
+                            "public:\n"
+                            "  CounterTest(T _obj);\n"
+                            "  template <typename T2>\n"
+                            "  CounterTest(const CounterTest<T2>& ptr);\n"
+                            "  T obj;\n"
+                            "  int count;\n"
+                            "};\n"
+                            "\n"
+                            "template <typename T>\n"
+                            "CounterTest<T>::CounterTest(T _obj) : obj(_obj) {\n"
+                            "  count = 0;\n"
+                            "}\n"
+                            "\n"
+                            "template <typename T>\n"
+                            "template <typename T2>\n"
+                            "CounterTest<T>::CounterTest(const CounterTest<T2>& p) : obj(0) {\n"
+                            "  count = p.count;\n"
+                            "}\n"
+                            "\n"
+                            "}\n"
+                            "\n"
+                            "using namespace myspace;\n"
+                            "CounterTest<int> myobj(0);\n";
+        const char expected[] = "1: namespace myspace {\n"
+                                "2:\n"
+                                "3: class CounterTest<int> ;\n"
+                                "4:\n"
+                                "|\n"
+                                "17:\n"
+                                "18: template < typename T >\n"
+                                "19: template < typename T2 >\n"
+                                "20: CounterTest < T > :: CounterTest ( const CounterTest < T2 > & p@1 ) : obj ( 0 ) {\n"
+                                "21: count = p@1 . count@2 ;\n"
+                                "22: }\n"
+                                "23:\n"
+                                "24: }\n"
+                                "25:\n"
+                                "26: using namespace myspace ;\n"
+                                "27: myspace :: CounterTest<int> myobj@3 ( 0 ) ;\n"
+                                "4: class myspace :: CounterTest<int> {\n"
+                                "5: public:\n"
+                                "6: CounterTest<int> ( int _obj@4 ) ;\n"
+                                "7: template < typename T2 >\n"
+                                "8: CounterTest<int> ( const myspace :: CounterTest < T2 > & ptr@5 ) ;\n"
+                                "9: int obj@6 ;\n"
+                                "10: int count@7 ;\n"
+                                "11: } ;\n"
+                                "12:\n"
+                                "13:\n"
+                                "14: myspace :: CounterTest<int> :: CounterTest<int> ( int _obj@8 ) : obj@6 ( _obj@8 ) {\n"
+                                "15: count@7 = 0 ;\n"
+                                "16: }\n"
+                                "17:\n"
+                                "18:\n"
+                                "19:\n"
+                                "20: myspace :: CounterTest<int> :: CounterTest<int> ( const myspace :: CounterTest < T2 > & p@9 ) : obj@6 ( 0 ) {\n"
+                                "21: count@7 = p@9 . count@10 ;\n"
+                                "22: }\n";
+        ASSERT_EQUALS(expected, tokenize(code, true));
     }
 
     void varid_for_1() {
@@ -2114,78 +2191,86 @@ private:
     }
 
     void varid_in_class24() {
-        const char *code{}, *expected{};
+        const char *expected{};
 
-        code = "class A {\n"
-               "    Q_OBJECT\n"
-               "public:\n"
-               "    using QPtr = QPointer<A>;\n"
-               "};\n";
-        expected = "1: class A {\n"
-                   "2: Q_OBJECT\n"
-                   "3: public:\n"
-                   "4:\n"
-                   "5: } ;\n";
-        ASSERT_EQUALS(expected, tokenize(code, true));
+        {
+            const char code[] = "class A {\n"
+                                "    Q_OBJECT\n"
+                                "public:\n"
+                                "    using QPtr = QPointer<A>;\n"
+                                "};\n";
+            expected = "1: class A {\n"
+                       "2: Q_OBJECT\n"
+                       "3: public:\n"
+                       "4:\n"
+                       "5: } ;\n";
+            ASSERT_EQUALS(expected, tokenize(code, true));
+        }
 
-        code = "class A {\n"
-               "    Q_OBJECT\n"
-               "    using QPtr = QPointer<A>;\n"
-               "};\n";
-        expected = "1: class A {\n"
-                   "2: Q_OBJECT\n"
-                   "3:\n"
-                   "4: } ;\n";
-        ASSERT_EQUALS(expected, tokenize(code, true));
+        {
+            const char code[] = "class A {\n"
+                                "    Q_OBJECT\n"
+                                "    using QPtr = QPointer<A>;\n"
+                                "};\n";
+            expected = "1: class A {\n"
+                       "2: Q_OBJECT\n"
+                       "3:\n"
+                       "4: } ;\n";
+            ASSERT_EQUALS(expected, tokenize(code, true));
+        }
     }
 
     void varid_in_class25() {
         const Settings s = settingsBuilder(settings).library("std.cfg").build();
 
-        const char *code{}, *expected{};
-        code = "struct F {\n" // #11497
-               "    int i;\n"
-               "    void f(const std::vector<F>&v) {\n"
-               "        if (v.front().i) {}\n"
-               "    }\n"
-               "};\n";
-        expected = "1: struct F {\n"
-                   "2: int i@1 ;\n"
-                   "3: void f ( const std :: vector < F > & v@2 ) {\n"
-                   "4: if ( v@2 . front ( ) . i@3 ) { }\n"
-                   "5: }\n"
-                   "6: } ;\n";
-        ASSERT_EQUALS(expected, tokenize(code, true, &s));
+        const char *expected{};
+        {
+            const char code[] = "struct F {\n" // #11497
+                                "    int i;\n"
+                                "    void f(const std::vector<F>&v) {\n"
+                                "        if (v.front().i) {}\n"
+                                "    }\n"
+                                "};\n";
+            expected = "1: struct F {\n"
+                       "2: int i@1 ;\n"
+                       "3: void f ( const std :: vector < F > & v@2 ) {\n"
+                       "4: if ( v@2 . front ( ) . i@3 ) { }\n"
+                       "5: }\n"
+                       "6: } ;\n";
+            ASSERT_EQUALS(expected, tokenize(code, true, &s));
+        }
 
-        code = "struct T { };\n" // 11533
-               "struct U { T t; };\n"
-               "std::vector<U*>* g();\n"
-               "void f() {\n"
-               "    std::vector<U*>* p = g();\n"
-               "    auto t = p->front()->t;\n"
-               "}\n";
-        expected = "1: struct T { } ;\n"
-                   "2: struct U { T t@1 ; } ;\n"
-                   "3: std :: vector < U * > * g ( ) ;\n"
-                   "4: void f ( ) {\n"
-                   "5: std :: vector < U * > * p@2 ; p@2 = g ( ) ;\n"
-                   "6: auto t@3 ; t@3 = p@2 . front ( ) . t@4 ;\n"
-                   "7: }\n";
-        ASSERT_EQUALS(expected, tokenize(code, true, &s));
+        {
+            const char code[] = "struct T { };\n" // 11533
+                                "struct U { T t; };\n"
+                                "std::vector<U*>* g();\n"
+                                "void f() {\n"
+                                "    std::vector<U*>* p = g();\n"
+                                "    auto t = p->front()->t;\n"
+                                "}\n";
+            expected = "1: struct T { } ;\n"
+                       "2: struct U { T t@1 ; } ;\n"
+                       "3: std :: vector < U * > * g ( ) ;\n"
+                       "4: void f ( ) {\n"
+                       "5: std :: vector < U * > * p@2 ; p@2 = g ( ) ;\n"
+                       "6: auto t@3 ; t@3 = p@2 . front ( ) . t@4 ;\n"
+                       "7: }\n";
+            ASSERT_EQUALS(expected, tokenize(code, true, &s));
+        }
     }
 
     void varid_in_class26() {
-        const char *code{}, *expected{}; // #11334
-        code = "struct S {\n"
-               "    union {\n"
-               "        uint8_t u8[4];\n"
-               "        uint32_t u32;\n"
-               "    };\n"
-               "    void f();\n"
-               "};\n"
-               "void S::f() {\n"
-               "    u8[0] = 0;\n"
-               "}\n";
+        const char *expected{}; // #11334
+        const char code[] = "struct S {\n"
+                            "    union {\n"
+                            "        uint8_t u8[4];\n"
+                            "        uint32_t u32;\n"
+                            "    };\n"
+                            "    void f();\n"
+                            "};\n"
+                            "void S::f() {\n"
+                            "    u8[0] = 0;\n"
+                            "}\n";
         expected = "1: struct S {\n"
                    "2: union {\n"
                    "3: uint8_t u8@1 [ 4 ] ;\n"
@@ -2436,6 +2521,16 @@ private:
                       "5: A :: A ( const Matrix & m@3 ) throw ( e ) : work@1 ( 0 )\n"
                       "6: { }\n",
                       tokenize(code10));
+
+        const char code11[] = "struct S {\n" // #12733
+                              "    explicit S(int& r) : a{ int{ 1 } }, b{ r } {}\n"
+                              "    int a, &b;\n"
+                              "};";
+        ASSERT_EQUALS("1: struct S {\n"
+                      "2: explicit S ( int & r@1 ) : a@2 { int { 1 } } , b@3 { r@1 } { }\n"
+                      "3: int a@2 ; int & b@3 ;\n"
+                      "4: } ;\n",
+                      tokenize(code11));
     }
 
     void varid_initListWithBaseTemplate() {
@@ -4100,6 +4195,25 @@ private:
                                 "3: ( ( s@2 =@UNIQUE \"abc\" ) +=@UNIQUE p@1 ) +=@UNIQUE \"def\"@UNIQUE ;\n"
                                 "4: }\n";
         ASSERT_EQUALS(expected, tokenizeExpr(code));
+    }
+
+    void exprid11()
+    {
+        const char code[] = "struct S { void f(); };\n" // #12713
+                            "int g(int, S*);\n"
+                            "int h(void (*)(), S*);\n"
+                            "void S::f() {\n"
+                            "    std::make_unique<int>(g({}, this)).release();\n"
+                            "    std::make_unique<int>(h([]() {}, this)).release();\n"
+                            "}\n";
+        const char* exp = "1: struct S { void f ( ) ; } ;\n"
+                          "2: int g ( int , S * ) ;\n"
+                          "3: int h ( void ( * ) ( ) , S * ) ;\n"
+                          "4: void S :: f ( ) {\n"
+                          "5: std ::@UNIQUE make_unique < int > (@UNIQUE g (@UNIQUE { } ,@6 this ) ) .@UNIQUE release (@UNIQUE ) ;\n"
+                          "6: std ::@UNIQUE make_unique < int > (@UNIQUE h (@UNIQUE [ ] ( ) { } ,@6 this ) ) .@UNIQUE release (@UNIQUE ) ;\n"
+                          "7: }\n";
+        ASSERT_EQUALS(exp, tokenizeExpr(code));
     }
 
     void structuredBindings() {

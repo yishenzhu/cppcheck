@@ -193,7 +193,7 @@ protected:
         }
 
         SettingsBuilder& c(Standards::cstd_t std) {
-            // TODO: CLatest and C11 are the same - handle differently
+            // TODO: CLatest and C23 are the same - handle differently?
             //if (REDUNDANT_CHECK && settings.standards.c == std)
             //    throw std::runtime_error("redundant setting: standards.c");
             settings.standards.c = std;
@@ -201,7 +201,7 @@ protected:
         }
 
         SettingsBuilder& cpp(Standards::cppstd_t std) {
-            // TODO: CPPLatest and CPP20 are the same - handle differently
+            // TODO: CPPLatest and CPP26 are the same - handle differently?
             //if (REDUNDANT_CHECK && settings.standards.cpp == std)
             //    throw std::runtime_error("redundant setting: standards.cpp");
             settings.standards.cpp = std;
@@ -294,6 +294,7 @@ public:
 // *INDENT-ON*
 #define ASSERT_EQUALS_WITHOUT_LINENUMBERS( EXPECTED, ACTUAL )  assertEqualsWithoutLineNumbers(__FILE__, __LINE__, EXPECTED, ACTUAL)
 #define ASSERT_EQUALS_DOUBLE( EXPECTED, ACTUAL, TOLERANCE )  assertEqualsDouble(__FILE__, __LINE__, EXPECTED, ACTUAL, TOLERANCE)
+#define ASSERT_EQUALS_LOC_MSG( EXPECTED, ACTUAL, MSG, FILE_, LINE_ )  assertEquals(FILE_, LINE_, EXPECTED, ACTUAL, MSG)
 #define ASSERT_EQUALS_MSG( EXPECTED, ACTUAL, MSG )  assertEquals(__FILE__, __LINE__, EXPECTED, ACTUAL, MSG)
 #define ASSERT_EQUALS_ENUM( EXPECTED, ACTUAL )  if (!assertEqualsEnum(__FILE__, __LINE__, (EXPECTED), (ACTUAL))) return
 #define ASSERT_THROW( CMD, EXCEPTION ) do { try { CMD; assertThrowFail(__FILE__, __LINE__); } catch (const EXCEPTION&) {} catch (...) { assertThrowFail(__FILE__, __LINE__); } } while (false)
@@ -307,8 +308,6 @@ public:
 #define TODO_ASSERT_EQUALS( WANTED, CURRENT, ACTUAL ) todoAssertEquals(__FILE__, __LINE__, WANTED, CURRENT, ACTUAL)
 #define EXPECT_EQ( EXPECTED, ACTUAL ) assertEquals(__FILE__, __LINE__, EXPECTED, ACTUAL)
 #define REGISTER_TEST( CLASSNAME ) namespace { CLASSNAME instance_ ## CLASSNAME; }
-
-#define LOAD_LIB_2_EXE( LIB, NAME, EXE ) do { if (((LIB).load((EXE), NAME).errorcode != Library::ErrorCode::OK)) throw std::runtime_error("library '" + std::string(NAME) + "' not found"); } while (false)
 
 #define PLATFORM( P, T ) do { std::string errstr; assertEquals(__FILE__, __LINE__, true, P.set(Platform::toString(T), errstr, {exename}), errstr); } while (false)
 

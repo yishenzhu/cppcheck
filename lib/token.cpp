@@ -100,38 +100,6 @@ static const std::unordered_set<std::string> controlFlowKeywords = {
     "return"
 };
 
-// TODO: replace with Keywords::getX()?
-// Another list of keywords
-static const std::unordered_set<std::string> baseKeywords = {
-    "asm",
-    "auto",
-    "break",
-    "case",
-    "const",
-    "continue",
-    "default",
-    "do",
-    "else",
-    "enum",
-    "extern",
-    "for",
-    "goto",
-    "if",
-    "inline",
-    "register",
-    "restrict",
-    "return",
-    "sizeof",
-    "static",
-    "struct",
-    "switch",
-    "typedef",
-    "union",
-    "volatile",
-    "while",
-    "void"
-};
-
 void Token::update_property_info()
 {
     setFlag(fIsControlFlowKeyword, controlFlowKeywords.find(mStr) != controlFlowKeywords.end());
@@ -146,9 +114,7 @@ void Token::update_property_info()
         else if (std::isalpha((unsigned char)mStr[0]) || mStr[0] == '_' || mStr[0] == '$') { // Name
             if (mImpl->mVarId)
                 tokType(eVariable);
-            else if (mTokensFrontBack.list.isKeyword(mStr))
-                tokType(eKeyword);
-            else if (baseKeywords.count(mStr) > 0)
+            else if (mTokensFrontBack.list.isKeyword(mStr) || mStr == "asm") // TODO: not a keyword
                 tokType(eKeyword);
             else if (mTokType != eVariable && mTokType != eFunction && mTokType != eType && mTokType != eKeyword)
                 tokType(eName);
@@ -408,56 +374,6 @@ void Token::replace(Token *replaceThis, Token *start, Token *end)
 
     // Delete old token, which is replaced
     delete replaceThis;
-}
-
-template<class T, REQUIRES("T must be a Token class", std::is_convertible<T*, const Token*> )>
-static T *tokAtImpl(T *tok, int index)
-{
-    while (index > 0 && tok) {
-        tok = tok->next();
-        --index;
-    }
-    while (index < 0 && tok) {
-        tok = tok->previous();
-        ++index;
-    }
-    return tok;
-}
-
-const Token *Token::tokAt(int index) const
-{
-    return tokAtImpl(this, index);
-}
-
-Token *Token::tokAt(int index)
-{
-    return tokAtImpl(this, index);
-}
-
-template<class T, REQUIRES("T must be a Token class", std::is_convertible<T*, const Token*> )>
-static T *linkAtImpl(T *thisTok, int index)
-{
-    T *tok = thisTok->tokAt(index);
-    if (!tok) {
-        throw InternalError(thisTok, "Internal error. Token::linkAt called with index outside the tokens range.");
-    }
-    return tok->link();
-}
-
-const Token *Token::linkAt(int index) const
-{
-    return linkAtImpl(this, index);
-}
-
-Token *Token::linkAt(int index)
-{
-    return linkAtImpl(this, index);
-}
-
-const std::string &Token::strAt(int index) const
-{
-    const Token *tok = this->tokAt(index);
-    return tok ? tok->mStr : emptyString;
 }
 
 static
@@ -999,8 +915,8 @@ const Token * Token::findClosingBracket() const
             depth -= 2;
         }
         // save named template parameter
-        else if (templateParameter && depth == 1 && closing->str() == "," &&
-                 closing->previous()->isName() && !Match(closing->previous(), "class|typename|."))
+        else if (templateParameter && depth == 1 && Token::Match(closing, "[,=]") &&
+                 closing->previous()->isName() && !Token::Match(closing->previous(), "class|typename|."))
             templateParameters.insert(closing->strAt(-1));
     }
 
@@ -2362,6 +2278,13 @@ void Token::setValueType(ValueType *vt)
         delete mImpl->mValueType;
         mImpl->mValueType = vt;
     }
+}
+
+const ValueType *Token::argumentType() const {
+    const Token *top = this;
+    while (top && !Token::Match(top->astParent(), ",|("))
+        top = top->astParent();
+    return top ? top->mImpl->mValueType : nullptr;
 }
 
 void Token::type(const ::Type *t)
