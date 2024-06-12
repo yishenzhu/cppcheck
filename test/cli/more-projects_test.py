@@ -645,18 +645,18 @@ def test_shared_items_project(tmpdir = ""):
     solutionFile = os.path.join(solutionDir, 'Solution.sln')
     codeMainFile = os.path.join(solutionDir, 'Main', 'MainFile.cpp')
     codeSharedFile = os.path.join(solutionDir, 'Shared', 'TestClass.cpp')
-    
+
     args = [
         '--platform=win64',
         '--project={}'.format(solutionFile), 
         '--project-configuration=Release|x64',
         '-j1'
     ]
-    
+
     exitcode, stdout, stderr = cppcheck(args)
     assert exitcode == 0
     lines = stdout.splitlines()
-    
+
     # Assume no errors, and that shared items code files have been checked as well
     assert any('2/2 files checked 100% done' in x for x in lines)
     assert stderr == ''
