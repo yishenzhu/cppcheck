@@ -463,8 +463,13 @@ private:
         ASSERT_EQUALS(cwd_up, Path::getAbsoluteFilePath(Path::join(cwd, ".\\..\\")));
 
         ASSERT_EQUALS(cwd, Path::getAbsoluteFilePath("."));
+#ifndef _WIN32
         TODO_ASSERT_EQUALS(cwd, "", Path::getAbsoluteFilePath("./"));
         TODO_ASSERT_EQUALS(cwd, "", Path::getAbsoluteFilePath(".\\"));
+#else
+        ASSERT_EQUALS(cwd, Path::getAbsoluteFilePath("./"));
+        ASSERT_EQUALS(cwd, Path::getAbsoluteFilePath(".\\"));
+#endif
 
         ASSERT_EQUALS("", Path::getAbsoluteFilePath(""));
 
@@ -474,6 +479,8 @@ private:
 #else
         ASSERT_EQUALS(Path::toNativeSeparators(Path::join(cwd, "testabspath2.txt")), Path::getAbsoluteFilePath("testabspath2.txt"));
 #endif
+
+        // TODO: test with symlinks
     }
 };
 
