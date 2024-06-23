@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
 
-# Compare "normal" check level and "exhaustive" check level
+# Compare results and timings of different valueflow options
+# Example usage:
+# cd ~/cppcheck && make CXXFLAGS=-O2 MATCHCOMPILER=yes
+# python3 compare-valueflow-options.py --cppcheck-path=~/cppcheck --packages-path=~/daca2-packages
 
 import donate_cpu_lib as lib
 import argparse
 import glob
 import os
+import re
 import sys
 import random
 import subprocess
@@ -15,6 +19,20 @@ def format_float(a, b=1):
     if a > 0 and b > 0:
         return '{:.2f}'.format(a / b)
     return 'N/A'
+
+
+def count_errors(errout:str, c:set):
+    for line in errout.split('\n'):
+        if not line.endswith(']'):
+            continue
+        res = re.match(r'^[^:]+:[0-9]+:[0-9]+: (error|warning|style|portability|performance):.*\[([a-zA-Z0-9_\-]+)\]$', line)
+        if res is None:
+            print('No warning? ' + line)
+            continue
+        severity = res.group(1)
+        c[severity] = c.get(severity, 0) + 1
+        error_id = res.group(2)
+        c[error_id] = c.get(error_id, 0) + 1
 
 
 if __name__ == "__main__":
@@ -48,19 +66,17 @@ if __name__ == "__main__":
 
     lib.set_jobs('-j' + str(args.j))
 
-    def results_file(name):
-        f, ext = os.path.splitext(args.o)
-        return os.path.join(work_path, f + '_' + name + ext)
+    results_file = os.path.join(work_path, args.o)
+    summary_file = os.path.join(work_path, 'summary.log')
+
+    for f in (results_file, summary_file):
+        if os.path.exists(f):
+            os.remove(f)
 
     opts = {'0': '--check-level=exhaustive --suppress=valueFlow*',
             'it2': '--check-level=exhaustive --performance-valueflow-max-iterations=2 --suppress=valueFlow*',
             'it1': '--check-level=exhaustive --performance-valueflow-max-iterations=1 --suppress=valueFlow*',
             'if8': '--check-level=exhaustive --performance-valueflow-max-if-count=8 --suppress=valueFlow*'}
-
-    for o in opts.keys():
-        f = results_file(o)
-        if os.path.exists(f):
-            os.remove(f)
 
     cppcheck_path = args.cppcheck_path
 
@@ -96,8 +112,9 @@ if __name__ == "__main__":
         random.shuffle(packages_idxs)
 
     packages_processed = 0
-    crashes = []
-    timeouts = []
+    summary_results = {}
+    for id in opts.keys():
+        summary_results[id] = {}
 
     while (packages_processed < args.p and len(packages_idxs) > 0) or args.packages:
         if args.packages:
@@ -119,50 +136,66 @@ if __name__ == "__main__":
             print("No files to process")
             continue
 
-        results_to_diff = list()
-        timings = list()
-
-        crashed = []
-        timeout = []
+        results0 = None
+        time0 = None
 
         enable = 'style'
         debug_warnings = False
 
         libraries = lib.library_includes.get_libraries(source_path)
 
+        with open(results_file, 'at') as myfile:
+            myfile.write('package:' + package + '\n')
+            myfile.write('libraries:' + ','.join(libraries) +'\n')
+
         for id, extra_args in opts.items():
-            print('scan:'+id)
+            print('scan:' + id)
             c, errout, info, time, cppcheck_options, timing_info = lib.scan_package(cppcheck_path, source_path, libraries, enable=enable, extra_args=extra_args)
+            error_text = None
             if c < 0:
                 if c == -101 and 'error: could not find or open any of the paths given.' in errout:
                     # No sourcefile found (for example only headers present)
-                    print('Error: 101')
+                    error_text = f'{id} ERR no source file'
                 elif c == lib.RETURN_CODE_TIMEOUT:
-                    print(id + ' timed out!')
-                    timeout.append(id)
-                    continue # we don't want to compare timeouts
+                    error_text = f'{id} timeout'
                 else:
-                    print(f'{id} crashed! code={c}')
-                    crashed.append(id)
-            results_to_diff.append(errout)
-            timings.append(time)
+                    error_text = f'{id} crash code={c}'
 
-            if len(results_to_diff) <= 1:
-                continue
-
-            r0 = results_to_diff[0]
-            with open(results_file(id), 'a') as myfile:
-                myfile.write(package + '\n')
-                if id in crashed:
-                    myfile.write('Crash\n')
-                elif id in timeout:
-                    myfile.write('Timeout\n')
+            with open(results_file, 'at') as myfile:
+                if error_text is not None:
+                    myfile.write(f'{error_text}\n')
                 else:
-                    diff = lib.diff_results('0', r0, id, errout)
-                    if diff != '':
-                        myfile.write('diff:\n' + diff + '\n')
-                    myfile.write('time: %.1f %.1f\n' % (timings[0], time))
-                myfile.write('libraries:' + ','.join(libraries) +'\n')
+                    results = {}
+                    count_errors(errout, results)
+                    count_errors(errout, summary_results[id])
+                    if results0 is None:
+                        results0 = results
+                        time0 = time
+                    else:
+                        for error_id, count in results0.items():
+                            current_count = results.get(error_id, 0)
+                            if count > current_count:
+                                myfile.write(f'{id}: FN {error_id}: {current_count} of {count}\n')
+                        if time > 10 or time0 > 10:
+                            myfile.write(f'{id}: Time: %.1f\n' % time)
+                            time_factor = time / time0
+                            myfile.write(f'{id}: Timefactor: %.3f\n' % time_factor)
+
+        with open(summary_file, 'wt') as myfile:
+            all = {}
+            for id, c in summary_results.items():
+                for error_id, count in c.items():
+                    if error_id not in all:
+                        all[error_id] = {}
+                        for id2 in opts.keys():
+                            all[error_id][id2] = 0
+                    all[error_id][id] += count
+
+            for error_id, id_count in all.items():
+                myfile.write(f'{error_id}:')
+                for id, count in id_count.items():
+                    myfile.write(f' {id}:{count}')
+                myfile.write('\n')
 
         packages_processed += 1
         print(str(packages_processed) + ' of ' + str(args.p) + ' packages processed\n')
