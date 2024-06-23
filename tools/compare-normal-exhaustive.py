@@ -47,20 +47,20 @@ if __name__ == "__main__":
         os.makedirs(work_path)
 
     lib.set_jobs('-j' + str(args.j))
-    result_file = os.path.join(work_path, args.o)
-    (f, ext) = os.path.splitext(result_file)
-    timing_file = f + '_timing' + ext
-    normal_results = f + '_normal' + ext
-    exhaustive_results = f + '_exhaustive' + ext
 
-    if os.path.exists(result_file):
-        os.remove(result_file)
-    if os.path.exists(timing_file):
-        os.remove(timing_file)
-    if os.path.exists(normal_results):
-        os.remove(normal_results)
-    if os.path.exists(exhaustive_results):
-        os.remove(exhaustive_results)
+    def results_file(name):
+        f, ext = os.path.splitext(args.o)
+        return os.path.join(work_path, f + '_' + name + ext)
+
+    opts = {'0': '--check-level=exhaustive --suppress=valueFlow*',
+            'it2': '--check-level=exhaustive --performance-valueflow-max-iterations=2 --suppress=valueFlow*',
+            'it1': '--check-level=exhaustive --performance-valueflow-max-iterations=1 --suppress=valueFlow*',
+            'if8': '--check-level=exhaustive --performance-valueflow-max-if-count=8 --suppress=valueFlow*'}
+
+    for o in opts.keys():
+        f = results_file(o)
+        if os.path.exists(f):
+            os.remove(f)
 
     cppcheck_path = args.cppcheck_path
 
@@ -120,94 +120,51 @@ if __name__ == "__main__":
             continue
 
         results_to_diff = list()
+        timings = list()
 
-        normal_crashed = False
-        exhaustive_crashed = False
-
-        normal_timeout = False
-        exhaustive_timeout = False
+        crashed = []
+        timeout = []
 
         enable = 'style'
         debug_warnings = False
 
         libraries = lib.library_includes.get_libraries(source_path)
-        c, errout, info, time_normal, cppcheck_options, timing_info = lib.scan_package(cppcheck_path, source_path, libraries, enable=enable, debug_warnings=debug_warnings, check_level='normal')
-        if c < 0:
-            if c == -101 and 'error: could not find or open any of the paths given.' in errout:
-                # No sourcefile found (for example only headers present)
-                print('Error: 101')
-            elif c == lib.RETURN_CODE_TIMEOUT:
-                print('Normal check level timed out!')
-                normal_timeout = True
-                continue # we don't want to compare timeouts
-            else:
-                print('Normal check level crashed!')
-                normal_crashed = True
-        results_to_diff.append(errout)
 
-        c, errout, info, time_exhaustive, cppcheck_options, timing_info = lib.scan_package(cppcheck_path, source_path, libraries, enable=enable, debug_warnings=debug_warnings, check_level='exhaustive')
-        if c < 0:
-            if c == -101 and 'error: could not find or open any of the paths given.' in errout:
-                # No sourcefile found (for example only headers present)
-                print('Error: 101')
-            elif c == lib.RETURN_CODE_TIMEOUT:
-                print('Exhaustive check level timed out!')
-                exhaustive_timeout = True
-                continue # we don't want to compare timeouts
-            else:
-                print('Exhaustive check level crashed!')
-                exhaustive_crashed = True
-        results_to_diff.append(errout)
+        for id, extra_args in opts.items():
+            print('scan:'+id)
+            c, errout, info, time, cppcheck_options, timing_info = lib.scan_package(cppcheck_path, source_path, libraries, enable=enable, extra_args=extra_args)
+            if c < 0:
+                if c == -101 and 'error: could not find or open any of the paths given.' in errout:
+                    # No sourcefile found (for example only headers present)
+                    print('Error: 101')
+                elif c == lib.RETURN_CODE_TIMEOUT:
+                    print(id + ' timed out!')
+                    timeout.append(id)
+                    continue # we don't want to compare timeouts
+                else:
+                    print(f'{id} crashed! code={c}')
+                    crashed.append(id)
+            results_to_diff.append(errout)
+            timings.append(time)
 
-        if normal_crashed or exhaustive_crashed:
-            who = None
-            if normal_crashed and exhaustive_crashed:
-                who = 'Both'
-            elif normal_crashed:
-                who = 'Normal'
-            else:
-                who = 'Exhaustive'
-            crashes.append(package + ' ' + who)
+            if len(results_to_diff) <= 1:
+                continue
 
-        if normal_timeout or exhaustive_timeout:
-            who = None
-            if normal_timeout and exhaustive_timeout:
-                who = 'Both'
-            elif normal_timeout:
-                who = 'Normal'
-            else:
-                who = 'Exhaustive'
-            timeouts.append(package + ' ' + who)
-
-        with open(result_file, 'a') as myfile:
-            myfile.write(package + '\n')
-            diff = lib.diff_results('normal', results_to_diff[0], 'exhaustive', results_to_diff[1])
-            if not normal_crashed and not exhaustive_crashed and diff != '':
+            r0 = results_to_diff[0]
+            with open(results_file(id), 'a') as myfile:
+                myfile.write(package + '\n')
+                if id in crashed:
+                    myfile.write('Crash\n')
+                elif id in timeout:
+                    myfile.write('Timeout\n')
+                else:
+                    diff = lib.diff_results('0', r0, id, errout)
+                    if diff != '':
+                        myfile.write('diff:\n' + diff + '\n')
+                    myfile.write('time: %.1f %.1f\n' % (timings[0], time))
                 myfile.write('libraries:' + ','.join(libraries) +'\n')
-                myfile.write('diff:\n' + diff + '\n')
-
-        if not normal_crashed and not exhaustive_crashed:
-            with open(timing_file, 'a') as myfile:
-                package_width = '140'
-                timing_width = '>7'
-                myfile.write('{:{package_width}} {:{timing_width}} {:{timing_width}} {:{timing_width}}\n'.format(
-                    package, format_float(time_normal),
-                    format_float(time_exhaustive), format_float(time_normal, time_exhaustive),
-                    package_width=package_width, timing_width=timing_width))
-            with open(normal_results, 'a') as myfile:
-                myfile.write(results_to_diff[0])
-            with open(exhaustive_results, 'a') as myfile:
-                myfile.write(results_to_diff[1])
 
         packages_processed += 1
         print(str(packages_processed) + ' of ' + str(args.p) + ' packages processed\n')
-
-    with open(result_file, 'a') as myfile:
-        myfile.write('\n\ncrashes\n')
-        myfile.write('\n'.join(crashes))
-
-    with open(result_file, 'a') as myfile:
-        myfile.write('\n\ntimeouts\n')
-        myfile.write('\n'.join(timeouts) + '\n')
 
     print('Result saved to: ' + result_file)
