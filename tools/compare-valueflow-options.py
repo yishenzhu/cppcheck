@@ -15,6 +15,10 @@ import random
 import subprocess
 
 
+# Do not report execution times below this limit, short execution time measurements are flaky
+TIME_LIMIT = 2
+
+
 def format_float(a, b=1):
     if a > 0 and b > 0:
         return '{:.2f}'.format(a / b)
@@ -176,7 +180,7 @@ if __name__ == "__main__":
                             current_count = results.get(error_id, 0)
                             if count > current_count:
                                 myfile.write(f'{id}: FN {error_id}: {current_count} of {count}\n')
-                        if time > 10 or time0 > 10:
+                        if time > TIME_LIMIT or time0 > TIME_LIMIT:
                             myfile.write(f'{id}: Time: %.1f\n' % time)
                             time_factor = time / time0
                             myfile.write(f'{id}: Timefactor: %.3f\n' % time_factor)
