@@ -362,7 +362,7 @@ test:	all
 	./testrunner
 
 check:	all
-	./testrunner -q
+	./testrunner
 
 checkcfg:	cppcheck validateCFG
 	./test/cfg/runtests.sh

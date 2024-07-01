@@ -357,13 +357,21 @@ bool Path::isHeader(const std::string &path)
 
 std::string Path::getAbsoluteFilePath(const std::string& filePath)
 {
+    if (filePath.empty())
+        return "";
+
     std::string absolute_path;
 #ifdef _WIN32
     char absolute[_MAX_PATH];
     if (_fullpath(absolute, filePath.c_str(), _MAX_PATH))
         absolute_path = absolute;
+    if (absolute_path.back() == '\\')
+        absolute_path.pop_back();
 #elif defined(__linux__) || defined(__sun) || defined(__hpux) || defined(__GNUC__) || defined(__CPPCHECK__)
-    char * absolute = realpath(filePath.c_str(), nullptr);
+    // simplify the path since any non-existent part has to existed even if discarded by ".."
+    std::string spath = Path::simplifyPath(filePath);
+    // TODO: assert if path exists?
+    char * absolute = realpath(spath.c_str(), nullptr);
     if (absolute)
         absolute_path = absolute;
     free(absolute);
