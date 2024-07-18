@@ -27,7 +27,6 @@
 
 #include <cstddef>
 #include <list>
-#include <sstream>
 #include <string>
 #include <vector>
 
@@ -8555,7 +8554,8 @@ private:
     }
 
     #define checkUselessOverride(...) checkUselessOverride_(__FILE__, __LINE__, __VA_ARGS__)
-    void checkUselessOverride_(const char* file, int line, const char code[]) {
+    template<size_t size>
+    void checkUselessOverride_(const char* file, int line, const char (&code)[size]) {
         const Settings settings = settingsBuilder().severity(Severity::style).build();
 
         std::vector<std::string> files(1, "test.cpp");
@@ -8925,9 +8925,8 @@ private:
         std::list<Check::FileInfo*> fileInfo;
         for (const std::string& c: code) {
             Tokenizer tokenizer(settingsDefault, *this);
-            std::istringstream istr(c);
             const std::string filename = std::to_string(fileInfo.size()) + ".cpp";
-            ASSERT(tokenizer.list.createTokens(istr, filename));
+            ASSERT(tokenizer.list.createTokens(c.data(), c.size(), filename));
             ASSERT(tokenizer.simplifyTokens1(""));
             fileInfo.push_back(check.getFileInfo(tokenizer, settingsDefault));
         }
