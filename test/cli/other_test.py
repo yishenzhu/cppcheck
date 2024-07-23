@@ -1762,3 +1762,47 @@ def test_checkers_report(tmpdir):
     assert exitcode == 0, stdout
     assert 'Active checkers:' in stderr
     assert '--checkers-report' not in stderr
+
+
+def test_duplicate_suppression(tmpdir):
+    test_file = os.path.join(tmpdir, 'file.cpp')
+    with open(test_file, 'wt'):
+        pass
+
+    exitcode, stdout, stderr = cppcheck(['-q', '--suppress=uninitvar', '--suppress=uninitvar', test_file])
+    assert exitcode == 1, stdout
+    assert stdout == "cppcheck: error: suppression 'uninitvar' already exists\n"
+    assert stderr == ''
+
+
+def test_duplicate_suppressions_list(tmpdir):
+    suppr_file = os.path.join(tmpdir, 'suppressions')
+    with open(suppr_file, 'wt') as f:
+        f.write('''
+uninitvar
+uninitvar
+''')
+
+    test_file = os.path.join(tmpdir, 'file.cpp')
+    with open(test_file, 'wt'):
+        pass
+
+    exitcode, stdout, stderr = cppcheck(['-q', '--suppressions-list={}'.format(suppr_file), test_file])
+    assert exitcode == 1, stdout
+    assert stdout == "cppcheck: error: suppression 'uninitvar' already exists\n"
+    assert stderr == ''
+
+
+def test_duplicate_suppressions_mixed(tmpdir):
+    suppr_file = os.path.join(tmpdir, 'suppressions')
+    with open(suppr_file, 'wt') as f:
+        f.write('''uninitvar''')
+
+    test_file = os.path.join(tmpdir, 'file.cpp')
+    with open(test_file, 'wt'):
+        pass
+
+    exitcode, stdout, stderr = cppcheck(['-q', '--suppress=uninitvar', '--suppressions-list={}'.format(suppr_file), test_file])
+    assert exitcode == 1, stdout
+    assert stdout == "cppcheck: error: suppression 'uninitvar' already exists\n"
+    assert stderr == ''
