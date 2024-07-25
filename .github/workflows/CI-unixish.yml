@@ -19,7 +19,7 @@ jobs:
 
     strategy:
       matrix:
-        os: [ubuntu-20.04, ubuntu-22.04, macos-12]
+        os: [macos-13, macos-14]
         include:
           - use_qt6: On
           - os: ubuntu-20.04
@@ -81,7 +81,7 @@ jobs:
 
     strategy:
       matrix:
-        os: [ubuntu-20.04, ubuntu-22.04, macos-12]
+        os: [macos-13, macos-14]
         include:
           - use_qt6: On
           - os: ubuntu-20.04
@@ -162,7 +162,7 @@ jobs:
 
     strategy:
       matrix:
-        os: [ubuntu-20.04, ubuntu-22.04, macos-12]
+        os: [macos-13, macos-14]
       fail-fast: false # Prefer quick result
 
     runs-on: ${{ matrix.os }}
@@ -194,7 +194,7 @@ jobs:
 
     strategy:
       matrix:
-        os: [ubuntu-20.04, ubuntu-22.04, macos-12]
+        os: [macos-13, macos-14]
       fail-fast: false # Prefer quick result
 
     runs-on: ${{ matrix.os }}
@@ -226,7 +226,7 @@ jobs:
 
     strategy:
       matrix:
-        os: [ubuntu-20.04, ubuntu-22.04, macos-12]
+        os: [macos-13, macos-14]
       fail-fast: false # Prefer quick result
 
     runs-on: ${{ matrix.os }}
@@ -336,7 +336,7 @@ jobs:
 
     strategy:
       matrix:
-        os: [ubuntu-20.04, ubuntu-22.04, macos-12]
+        os: [macos-13, macos-14]
       fail-fast: false # Prefer quick result
 
     runs-on: ${{ matrix.os }}
@@ -369,11 +369,19 @@ jobs:
           brew install coreutils python3 pcre gnu-sed
 
       - name: Install missing Python packages
+        if: matrix.os == 'macos-12' || matrix.os == 'macos-13'
         run: |
           python3 -m pip install pip --upgrade
           python3 -m pip install pytest
           python3 -m pip install pytest-timeout
           python3 -m pip install psutil
+
+      - name: Install missing Python packages (macos)
+        if: matrix.os == 'macos-14'
+        run: |
+          pipx install pytest
+          pipx install pytest-timeout
+          pipx install psutil
 
       - name: Build cppcheck
         run: |
